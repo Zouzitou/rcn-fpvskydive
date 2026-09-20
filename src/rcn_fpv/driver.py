@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Iterable
+import re
 
 @dataclass(frozen=True)
 class DriverEvidence:
@@ -22,3 +23,15 @@ def validate_driver(evidence: DriverEvidence, required_vid="2CA3", required_pid=
 
 def pnputil_command(inf_path):
     return ["pnputil.exe", "/add-driver", str(inf_path), "/install"]
+
+def parse_driver_output(text: str):
+    """Parse localized-ish pnputil output conservatively; unknown fields stay empty."""
+    def field(label):
+        match = re.search(rf"(?im)^\s*{re.escape(label)}\s*:\s*(.+?)\s*$", text)
+        return match.group(1).strip() if match else ""
+    ids = tuple(re.findall(r"(?i)USB\\VID_[0-9A-F]{4}&PID_[0-9A-F]{4}", text))
+    return DriverEvidence(
+        provider=field("Provider Name"), version=field("Driver Version"),
+        signed=bool(re.search(r"(?i)signature|signed|digitally signed", text)),
+        hardware_ids=ids, ports_class=bool(re.search(r"(?i)class\s*name\s*:\s*ports", text)),
+    )

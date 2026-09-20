@@ -1,4 +1,4 @@
-from rcn_fpv.driver import DriverEvidence, pnputil_command, validate_driver
+from rcn_fpv.driver import DriverEvidence, pnputil_command, validate_driver, parse_driver_output
 from rcn_fpv.startup import choose_startup_method
 from rcn_fpv.lifecycle import BridgeState, Lifecycle
 from rcn_fpv.runtime import HealthStore
@@ -12,6 +12,11 @@ def test_driver_validation_fails_closed():
 
 def test_driver_command_is_explicit():
     assert pnputil_command("dji_vcom_driver11.inf") == ["pnputil.exe", "/add-driver", "dji_vcom_driver11.inf", "/install"]
+
+def test_driver_output_parser_is_conservative():
+    evidence = parse_driver_output("Provider Name: DJI\nDriver Version: 1.2\nClass Name: Ports\nDigitally Signed: Yes\nUSB\\VID_2CA3&PID_1020")
+    assert evidence.provider == "DJI" and evidence.ports_class and evidence.signed
+    assert validate_driver(evidence)[0]
 
 def test_startup_fallback_order():
     assert choose_startup_method(True, True).method == "scheduled-task"
