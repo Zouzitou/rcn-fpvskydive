@@ -22,7 +22,7 @@ def run(root, interval=0.02):
                 HealthStore(root).write("stopping", reason="operator requested stop")
                 return 0
             try: bridge.poll_once()
-            except Exception: bridge.disconnect()
+            except Exception as exc: bridge.disconnect(str(exc))
             time.sleep(interval)
     except KeyboardInterrupt:
         pass

@@ -64,13 +64,13 @@ class Bridge:
                 self.logger.event("valid_frames", count=valid)
                 self.last_frame_log_at = self.last_frame_at
         return bool(valid)
-    def disconnect(self):
+    def disconnect(self, reason="transport lost"):
         if self.transport:
             self.transport.close(); self.transport = None
-        delay = self.lifecycle.lost()
+        delay = self.lifecycle.lost(reason)
         self.next_connect_at = monotonic() + delay
         self.previous_axes = {name: 0.0 for name in self.previous_axes}
-        self.logger.event("transport_lost", retry_seconds=delay)
+        self.logger.event("transport_lost", retry_seconds=delay, reason=reason)
         self.output.neutral(); self.output.release_buttons()
     def stop(self):
         try:

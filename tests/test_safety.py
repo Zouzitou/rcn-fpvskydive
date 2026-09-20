@@ -40,6 +40,11 @@ def test_lifecycle_requires_fresh_live_input_after_reconnect(tmp_path):
     life.lost(); life.candidate_found(); life.frame(3.0)
     assert life.state == BridgeState.VERIFYING_LIVE_INPUT
 
+def test_lifecycle_records_reconnect_reason(tmp_path):
+    store = HealthStore(tmp_path); life = Lifecycle(store)
+    life.lost("Protocol port is busy")
+    assert store.path.read_text(encoding="utf-8").find("Protocol port is busy") >= 0
+
 def test_transport_reads_incremental_frames():
     class FakeSerial:
         def __init__(self, *args, **kwargs): self.closed = False; self.kwargs = kwargs

@@ -41,8 +41,10 @@ class Lifecycle:
             self.state = BridgeState.CONNECTED
             self.failures = 0
         self.health.write(self.state.value, last_valid_frame=self.last_frame)
-    def lost(self):
+    def lost(self, reason=None):
         self.failures += 1; self.state = BridgeState.RECONNECT_BACKOFF
         delay = self.backoff_seconds[min(self.failures - 1, len(self.backoff_seconds) - 1)]
-        self.health.write(self.state.value, retry_seconds=delay)
+        details = {"retry_seconds": delay}
+        if reason: details["reason"] = reason
+        self.health.write(self.state.value, **details)
         return delay
