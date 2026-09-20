@@ -14,6 +14,9 @@ def run(root: Path, max_restarts=5):
             code = child.wait()
         except KeyboardInterrupt:
             return 0
+        except Exception as exc:
+            code = 1
+            health.write("watchdog_spawn_failed", reason=str(exc), restart_count=failures)
         if code == 0: return 0
         failures += 1
         delay = min(60, 2 ** min(failures, 5))
