@@ -1,6 +1,7 @@
 import json, os, platform, re
 from pathlib import Path
 from .logging import tail
+from . import __version__
 
 def redact(value):
     text = str(value)
@@ -12,7 +13,7 @@ def report(root: Path, extra=None):
     health = root / "state" / "health.json"
     data = {
         "windows": platform.platform(), "architecture": platform.machine(), "pid": os.getpid(), "root": redact(root),
-        "installer_runtime_version": "0.1.0", "python_environment": "unknown", "virtual_gamepad_test": "not-run",
+        "installer_runtime_version": __version__, "python_environment": "unknown", "virtual_gamepad_test": "not-run",
         "usb_devices": [], "driver": "unknown", "protocol_port": None, "serial_open": "not-run",
         "live_frames": "not-run", "fpv_skydive": "not-run", "startup_registration": "unknown",
         "bridge_process": {"pid": os.getpid(), "alive": True},
