@@ -9,8 +9,9 @@ class Output:
     def release_buttons(self): self.events.append("release")
 
 class Transport:
-    def __init__(self, candidate): self.opened=False; self.closed=False
+    def __init__(self, candidate): self.opened=False; self.closed=False; self.writes=[]
     def open(self): self.opened=True
+    def write(self, data): self.writes.append(data); return len(data)
     def read_frames(self): return []
     def close(self): self.closed=True
 
@@ -41,7 +42,8 @@ def test_bridge_waits_for_reconnect_backoff(tmp_path):
 def test_bridge_opens_only_discovered_candidate(tmp_path):
     port=PortCandidate("COM9", "For Protocol", "2CA3", "1020", "MI_02")
     bridge=Bridge(tmp_path, lambda: port, Transport, Output(), HealthStore(tmp_path))
-    bridge.start(); assert bridge.connect_if_available(); assert bridge.transport.opened; bridge.stop()
+    bridge.start(); assert bridge.connect_if_available(); assert bridge.transport.opened
+    bridge.poll_once(); assert len(bridge.transport.writes) == 3; bridge.stop()
 
 def test_bridge_emits_axes_only_after_live_verification(tmp_path):
     class LiveTransport(Transport):

@@ -14,6 +14,7 @@ class Bridge:
         self.logger = JsonlLogger(root)
         self.lock = ProcessLock(root / "state" / "bridge.lock"); self.transport = None
         self.last_frame_at = None
+        self.last_frame_log_at = None
         self.last_wait_logged_at = None
         self.next_connect_at = 0.0
         self.axis_configs = axis_configs
@@ -45,6 +46,8 @@ class Bridge:
             if monotonic() < self.next_connect_at:
                 return False
             return self.connect_if_available()
+        if hasattr(self.transport, "write"):
+            self.transport.write(build_read_sticks())
         frames = self.transport.read_frames()
         valid = 0
         for packet in frames:
@@ -57,7 +60,9 @@ class Bridge:
                 self.output.set_axes(axes)
         if valid:
             self.last_frame_at = monotonic(); self.lifecycle.frame(self.last_frame_at)
-            self.logger.event("valid_frames", count=valid)
+            if self.last_frame_log_at is None or self.last_frame_at - self.last_frame_log_at >= 5:
+                self.logger.event("valid_frames", count=valid)
+                self.last_frame_log_at = self.last_frame_at
         return bool(valid)
     def disconnect(self):
         if self.transport:
