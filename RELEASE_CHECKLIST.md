@@ -10,3 +10,4 @@
 - [ ] Verify virtual gamepad self-test cleanup and no stuck axes/buttons.
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
 - [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
+- [ ] Use the manual `release` workflow to run tests, package the exact allowlisted files, generate SHA-256, and publish both payload and checksum manifest.
