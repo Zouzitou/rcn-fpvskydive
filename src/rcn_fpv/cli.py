@@ -22,5 +22,24 @@ def main(argv=None):
             "usb_candidates": [c.__dict__ for c in candidates],
             "selected_protocol_port": selected.__dict__ if selected else None}), indent=2))
         return 0
+    if args.command == "start":
+        try:
+            from .service import run
+            run(ROOT)
+            return 0
+        except KeyboardInterrupt:
+            return 0
+        except Exception as exc:
+            print(f"start failed safely: {exc}", file=sys.stderr)
+            return 2
+    if args.command == "stop":
+        print("stop: request the running bridge to stop from its console or service manager")
+        return 0
+    if args.command == "repair":
+        print("repair: rerun the verified bootstrapper to repair the managed environment")
+        return 0
+    if args.command == "uninstall":
+        print("uninstall: run uninstall.ps1 from the verified release")
+        return 0
     print(f"{args.command}: installer/runtime operation is not available until installed via bootstrap.ps1", file=sys.stderr)
     return 2
