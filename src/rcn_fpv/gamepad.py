@@ -28,19 +28,18 @@ class VigemBackend:
             import vgamepad as vg
         except ImportError as exc:
             raise GamepadUnavailable("vgamepad is not installed") from exc
-        self.vg = vg; self.pad = None
+        self.vg = vg; self.pad = None; self.axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
     def create(self): self.pad = self.vg.VX360Gamepad()
     def axis(self, name, value):
         if self.pad is None: raise GamepadUnavailable("gamepad not created")
-        value = max(-1.0, min(1.0, float(value)))
-        raw = int(value * 32767)
-        if name == "left_x": self.pad.left_joystick(x_value=raw, y_value=0)
-        elif name == "left_y": self.pad.left_joystick(x_value=0, y_value=raw)
-        elif name == "right_x": self.pad.right_joystick(x_value=raw, y_value=0)
-        elif name == "right_y": self.pad.right_joystick(x_value=0, y_value=raw)
-        else: raise ValueError(f"unknown axis: {name}")
+        if name not in self.axes: raise ValueError(f"unknown axis: {name}")
+        self.axes[name] = max(-1.0, min(1.0, float(value)))
     def update(self):
-        if self.pad: self.pad.update()
+        if self.pad:
+            raw = lambda name: int(self.axes[name] * 32767)
+            self.pad.left_joystick(x_value=raw("left_x"), y_value=raw("left_y"))
+            self.pad.right_joystick(x_value=raw("right_x"), y_value=raw("right_y"))
+            self.pad.update()
     def release(self):
         if self.pad: self.pad.reset(); self.pad.update(); self.pad = None
 

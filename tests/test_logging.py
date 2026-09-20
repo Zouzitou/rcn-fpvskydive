@@ -9,3 +9,4 @@ def test_xbox_output_neutral_and_axes():
     backend = NullBackend(); output = XboxOutput(backend)
     output.set_axes({"left_x": 0.5}); output.neutral(); output.release_buttons()
     assert backend.events[-1] == ("release",)
+    assert ("axis", "left_y", 0.0) in backend.events
