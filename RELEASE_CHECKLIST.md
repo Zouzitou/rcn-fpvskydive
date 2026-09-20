@@ -8,6 +8,7 @@
 - [ ] Verify RC-N1 hardware live-stick flow.
 - [ ] Run RC-N2 and RC-N3 detection; report unsupported protocol unless validated.
 - [ ] Verify virtual gamepad self-test cleanup and no stuck axes/buttons.
+- [ ] Run `startup.ps1 -Action install`, launch it immediately, verify one process and `state\startup.json`, then run `startup.ps1 -Action remove`.
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
 - [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
 - [ ] Run `./release.ps1 -Version 0.1.3` locally; it runs tests, packages the allowlist, updates the bootstrap hash, commits/pushes, and publishes with `gh release create`. GitHub Actions is intentionally not used.

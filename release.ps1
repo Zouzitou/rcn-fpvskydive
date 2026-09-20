@@ -6,7 +6,7 @@ $stage = Join-Path $env:TEMP ('rcn-release-' + [guid]::NewGuid().ToString('N'))
 $zip = Join-Path $stage "rcn-fpvskydive-$tag.zip"
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 py -m pytest -q
-$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','startup.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
 foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $stage -Recurse -Force }
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
