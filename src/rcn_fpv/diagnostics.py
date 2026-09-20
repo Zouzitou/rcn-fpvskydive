@@ -1,5 +1,6 @@
 import json, os, platform, re
 from pathlib import Path
+from .logging import tail
 
 def redact(value):
     text = str(value)
@@ -12,7 +13,8 @@ def report(root: Path, extra=None):
     data = {"windows": platform.platform(), "architecture": platform.machine(), "pid": os.getpid(), "root": redact(root)}
     if health.exists():
         try: data["health"] = json.loads(health.read_text(encoding="utf-8"))
-        except (OSError, ValueError): data["health"] = {"error": "unreadable health file"}
+            except (OSError, ValueError): data["health"] = {"error": "unreadable health file"}
+    data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]
     if extra: data.update({k: redact(v) for k, v in extra.items()})
     return data
 
