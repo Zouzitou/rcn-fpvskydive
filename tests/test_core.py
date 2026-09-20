@@ -1,5 +1,5 @@
 from rcn_fpv.discovery import PortCandidate, choose_candidate
-from rcn_fpv.mapping import AxisConfig, map_axis
+from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
 from rcn_fpv.diagnostics import report
@@ -30,6 +30,12 @@ def test_rcn1_decoder_requires_valid_duml_frame():
 def test_mapping_dead_zone_and_inversion():
     assert map_axis(0.01, AxisConfig()) == 0
     assert map_axis(0.5, AxisConfig(invert=True)) < 0
+
+def test_mode2_stick_mapping_is_explicit():
+    frame = type("F", (), {"left_h": 1684, "left_v": 364, "right_h": 1024, "right_v": 1684})()
+    axes = map_sticks(frame)
+    assert axes["left_x"] > 0.9 and axes["left_y"] < -0.9
+    assert abs(axes["right_x"]) < 0.01 and axes["right_y"] > 0.9
 
 def test_singleton_and_health(tmp_path):
     lock = ProcessLock(tmp_path / "bridge.lock")
