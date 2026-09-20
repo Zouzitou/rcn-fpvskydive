@@ -14,8 +14,11 @@ $bootstrap = Get-Content -LiteralPath 'bootstrap.ps1' -Raw
 $bootstrap = [regex]::Replace($bootstrap, 'releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+\.zip', "releases/download/$tag/rcn-fpvskydive-$tag.zip")
 $bootstrap = [regex]::Replace($bootstrap, '(?m)^\$ExpectedSha256 = ''[A-Fa-f0-9]+''$', ('$' + 'ExpectedSha256 = ''' + $hash + ''''))
 Set-Content -LiteralPath 'bootstrap.ps1' -Value $bootstrap -NoNewline
+$readme = Get-Content -LiteralPath 'README.md' -Raw
+$readme = [regex]::Replace($readme, 'raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v[0-9.]+/bootstrap\.ps1', "raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/$tag/bootstrap.ps1")
+Set-Content -LiteralPath 'README.md' -Value $readme -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
-git add bootstrap.ps1 release.ps1
+git add bootstrap.ps1 README.md release.ps1
 git commit -m "Prepare $tag release"
 git push
 gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."
