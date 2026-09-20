@@ -16,6 +16,19 @@ class ProcessLock:
             self.handle.flush()
             return True
         except FileExistsError:
+            try:
+                text = self.path.read_text(encoding="ascii")
+                pid = int(next(line.split("=", 1)[1] for line in text.splitlines() if line.startswith("pid=")))
+                os.kill(pid, 0)
+            except PermissionError:
+                raise SingletonError(f"bridge lock is owned by an inaccessible process ({self.path})")
+            except (FileNotFoundError, ValueError, StopIteration, ProcessLookupError):
+                try: self.path.unlink()
+                except FileNotFoundError: pass
+                self.handle = self.path.open("x", encoding="ascii")
+                self.handle.write(f"pid={os.getpid()}\nstarted={time.time()}\n")
+                self.handle.flush()
+                return True
             raise SingletonError(f"bridge already running ({self.path})")
     def release(self):
         if self.handle:

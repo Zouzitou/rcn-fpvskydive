@@ -58,6 +58,14 @@ def test_singleton_and_health(tmp_path):
         assert report(tmp_path)["driver"] == "unknown"
     finally: lock.release()
 
+def test_stale_singleton_lock_is_reclaimed(tmp_path, monkeypatch):
+    path = tmp_path / "bridge.lock"
+    path.write_text("pid=1234\nstarted=0\n", encoding="ascii")
+    monkeypatch.setattr("rcn_fpv.runtime.os.kill", lambda *_: (_ for _ in ()).throw(ProcessLookupError()))
+    lock = ProcessLock(path)
+    assert lock.acquire()
+    lock.release()
+
 def test_gamepad_self_test_releases_backend():
     backend = NullBackend()
     result = self_test(backend)
