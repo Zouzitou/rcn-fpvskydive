@@ -32,6 +32,14 @@ def test_lifecycle_requires_all_live_axes(tmp_path):
     life.frame(2.0); assert life.state == BridgeState.CONNECTED
     assert life.lost() == 1
 
+def test_lifecycle_requires_fresh_live_input_after_reconnect(tmp_path):
+    life = Lifecycle(HealthStore(tmp_path))
+    life.candidate_found(); life.frame(1.0)
+    for axis in life.verification.required_axes: life.verification.observe(axis, 0.0, 0.2)
+    life.frame(2.0); assert life.state == BridgeState.CONNECTED
+    life.lost(); life.candidate_found(); life.frame(3.0)
+    assert life.state == BridgeState.VERIFYING_LIVE_INPUT
+
 def test_transport_reads_incremental_frames():
     class FakeSerial:
         def __init__(self, *args, **kwargs): self.closed = False

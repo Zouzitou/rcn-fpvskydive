@@ -15,6 +15,7 @@ class Bridge:
         self.lock = ProcessLock(root / "state" / "bridge.lock"); self.transport = None
         self.last_frame_at = None
         self.last_wait_logged_at = None
+        self.next_connect_at = 0.0
         self.axis_configs = axis_configs
         self.previous_axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
     def start(self):
@@ -41,6 +42,8 @@ class Bridge:
         self.logger.event("protocol_open", message=getattr(result, "message", "opened")); return True
     def poll_once(self):
         if self.transport is None:
+            if monotonic() < self.next_connect_at:
+                return False
             return self.connect_if_available()
         frames = self.transport.read_frames()
         valid = 0
@@ -59,8 +62,11 @@ class Bridge:
     def disconnect(self):
         if self.transport:
             self.transport.close(); self.transport = None
-        self.logger.event("transport_lost")
-        self.output.neutral(); self.output.release_buttons(); self.lifecycle.lost()
+        delay = self.lifecycle.lost()
+        self.next_connect_at = monotonic() + delay
+        self.previous_axes = {name: 0.0 for name in self.previous_axes}
+        self.logger.event("transport_lost", retry_seconds=delay)
+        self.output.neutral(); self.output.release_buttons()
     def stop(self):
         try:
             if self.transport: self.transport.close()

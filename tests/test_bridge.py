@@ -31,6 +31,13 @@ def test_bridge_rate_limits_waiting_log(tmp_path):
     lines = (tmp_path / "logs" / "bridge.jsonl").read_text(encoding="utf-8").splitlines()
     assert sum('"event":"waiting_for_controller"' in line for line in lines) == 1
 
+def test_bridge_waits_for_reconnect_backoff(tmp_path):
+    calls = []
+    bridge = Bridge(tmp_path, lambda: calls.append(1), Transport, Output(), HealthStore(tmp_path))
+    bridge.start(); bridge.next_connect_at = float("inf")
+    assert bridge.poll_once() is False and not calls
+    bridge.stop()
+
 def test_bridge_opens_only_discovered_candidate(tmp_path):
     port=PortCandidate("COM9", "For Protocol", "2CA3", "1020", "MI_02")
     bridge=Bridge(tmp_path, lambda: port, Transport, Output(), HealthStore(tmp_path))
