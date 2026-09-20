@@ -10,6 +10,18 @@ class NullBackend:
     def update(self): self.events.append(("update",))
     def release(self): self.events.append(("release",))
 
+class XboxOutput:
+    def __init__(self, backend): self.backend = backend; self.axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
+    def neutral(self):
+        for axis in self.axes: self.axes[axis] = 0.0
+        for axis, value in self.axes.items(): self.backend.axis(axis, value)
+        self.backend.update()
+    def release_buttons(self): self.backend.release()
+    def set_axes(self, values):
+        self.axes.update(values)
+        for axis, value in self.axes.items(): self.backend.axis(axis, value)
+        self.backend.update()
+
 class VigemBackend:
     def __init__(self):
         try:
