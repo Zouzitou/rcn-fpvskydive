@@ -23,7 +23,8 @@ class Bridge:
         self.lifecycle.candidate_found()
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
         self.transport = self.transport_factory(candidate)
-        result = self.transport.open(); self.logger.event("protocol_open", message=result.message); return True
+        result = self.transport.open()
+        self.logger.event("protocol_open", message=getattr(result, "message", "opened")); return True
     def poll_once(self):
         if self.transport is None:
             return self.connect_if_available()
