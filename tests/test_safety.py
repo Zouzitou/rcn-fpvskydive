@@ -19,6 +19,10 @@ def test_driver_output_parser_is_conservative():
     assert evidence.provider == "DJI" and evidence.ports_class and evidence.signed
     assert validate_driver(evidence)[0]
 
+def test_driver_output_parser_rejects_explicit_unsigned_result():
+    evidence = parse_driver_output("Class Name: Ports\nDigitally Signed: No\nUSB\\VID_2CA3&PID_1020")
+    assert not evidence.signed and not validate_driver(evidence)[0]
+
 def test_startup_fallback_order():
     assert choose_startup_method(True, True).method == "scheduled-task"
     assert choose_startup_method(False, True).method == "startup-folder"

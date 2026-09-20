@@ -32,6 +32,6 @@ def parse_driver_output(text: str):
     ids = tuple(re.findall(r"(?i)USB\\VID_[0-9A-F]{4}&PID_[0-9A-F]{4}", text))
     return DriverEvidence(
         provider=field("Provider Name"), version=field("Driver Version"),
-        signed=bool(re.search(r"(?i)signature|signed|digitally signed", text)),
+        signed=bool(re.search(r"(?im)^\s*(?:digitally\s+signed|signed)\s*:\s*(?:yes|true)\b", text)),
         hardware_ids=ids, ports_class=bool(re.search(r"(?i)class\s*name\s*:\s*ports", text)),
     )
