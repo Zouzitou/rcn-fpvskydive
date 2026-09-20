@@ -8,13 +8,14 @@ from .protocol import parse_rcn1_sticks, build_enable_simulator, build_read_stic
 from .mapping import map_sticks
 
 class Bridge:
-    def __init__(self, root, discovery, transport_factory, output, health):
+    def __init__(self, root, discovery, transport_factory, output, health, axis_configs=None):
         self.root = root; self.discovery = discovery; self.transport_factory = transport_factory
         self.output = output; self.health = health; self.lifecycle = Lifecycle(health)
         self.logger = JsonlLogger(root)
         self.lock = ProcessLock(root / "state" / "bridge.lock"); self.transport = None
         self.last_frame_at = None
         self.last_wait_logged_at = None
+        self.axis_configs = axis_configs
         self.previous_axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
     def start(self):
         self.lock.acquire()
@@ -46,7 +47,7 @@ class Bridge:
         for packet in frames:
             decoded = parse_rcn1_sticks(packet)
             if decoded is None: continue
-            axes = map_sticks(decoded)
+            axes = map_sticks(decoded, self.axis_configs)
             for name, value in axes.items(): self.lifecycle.verification.observe(name, self.previous_axes[name], value)
             self.previous_axes = axes; valid += 1
             if self.lifecycle.state == BridgeState.CONNECTED and hasattr(self.output, "set_axes"):

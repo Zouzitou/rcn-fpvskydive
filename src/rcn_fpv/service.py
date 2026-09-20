@@ -1,5 +1,6 @@
 import time
 from .bridge import Bridge
+from .config import axis_configs, load_config
 from .discovery import choose_candidate, enumerate_protocol_ports
 from .gamepad import VigemBackend, XboxOutput, self_test
 from .runtime import HealthStore
@@ -13,7 +14,7 @@ def run(root, interval=0.1):
         raise RuntimeError(result.message)
     backend.create()
     output = XboxOutput(backend)
-    bridge = Bridge(root, lambda: choose_candidate(enumerate_protocol_ports()), SerialTransport, output, HealthStore(root))
+    bridge = Bridge(root, lambda: choose_candidate(enumerate_protocol_ports()), SerialTransport, output, HealthStore(root), axis_configs(load_config(root)))
     bridge.start()
     try:
         while True:
