@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from .discovery import PortCandidate
-from .protocol import parse
+from .protocol import parse_duml_stream
 
 class TransportError(RuntimeError): pass
 
@@ -31,7 +31,7 @@ class SerialTransport:
         if self.serial is None: raise TransportError("transport is not open")
         chunk = self.serial.read(4096)
         if chunk: self.buffer.extend(chunk)
-        frames = parse(self.buffer)
+        frames = parse_duml_stream(self.buffer)
         if on_frame:
             for frame in frames: on_frame(frame)
         return frames

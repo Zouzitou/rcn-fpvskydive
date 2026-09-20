@@ -46,6 +46,23 @@ def parse_rcn1_sticks(packet: bytes) -> Optional[StickFrame]:
     def value(offset): return int.from_bytes(packet[offset:offset + 2], "little")
     return StickFrame(value(13), value(16), value(19), value(22), value(25), packet[12])
 
+def parse_duml_stream(buffer: bytearray):
+    """Extract validated DUML packets from a serial byte stream."""
+    packets = []
+    while True:
+        try: start = buffer.index(0x55)
+        except ValueError: buffer.clear(); break
+        if start: del buffer[:start]
+        if len(buffer) < 4: break
+        length = int.from_bytes(buffer[1:3], "little") & 0x03FF
+        if length < 13 or length > 1024:
+            del buffer[0]; continue
+        if len(buffer) < length: break
+        packet = bytes(buffer[:length])
+        del buffer[:length]
+        if parse_duml(packet) is not None: packets.append(packet)
+    return packets
+
 def checksum(data: bytes) -> int:
     return sum(data) & 0xFF
 

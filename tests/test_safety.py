@@ -3,7 +3,7 @@ from rcn_fpv.startup import choose_startup_method
 from rcn_fpv.lifecycle import BridgeState, Lifecycle
 from rcn_fpv.runtime import HealthStore
 from rcn_fpv.discovery import PortCandidate
-from rcn_fpv.protocol import encode
+from rcn_fpv.protocol import encode, crc8, crc16
 from rcn_fpv.transport import SerialTransport, TransportError
 
 def test_driver_validation_fails_closed():
@@ -29,12 +29,15 @@ def test_lifecycle_requires_all_live_axes(tmp_path):
 def test_transport_reads_incremental_frames():
     class FakeSerial:
         def __init__(self, *args, **kwargs): self.closed = False
-        def read(self, _): return encode(b"axis")
+        def read(self, _):
+            packet = bytearray(13); packet[0] = 0x55; packet[1:3] = (13).to_bytes(2, "little")
+            packet[3] = crc8(packet[:3]); packet[-2:] = crc16(packet[:-2]).to_bytes(2, "little")
+            return bytes(packet)
         def close(self): self.closed = True
     port = PortCandidate("COM8", "DJI For Protocol", "2CA3", "1020", "MI_02")
     transport = SerialTransport(port, serial_factory=FakeSerial)
     assert transport.open().opened
-    assert transport.read_frames()[0].payload == b"axis"
+    assert transport.read_frames()[0][0] == 0x55
     transport.close()
 
 def test_transport_rejects_debug_port():
