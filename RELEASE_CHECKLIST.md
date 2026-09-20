@@ -12,3 +12,4 @@
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
 - [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
 - [ ] Run `./release.ps1 -Version 0.1.3` locally; it runs tests, packages the allowlist, updates the bootstrap hash, commits/pushes, and publishes with `gh release create`. GitHub Actions is intentionally not used.
+- [ ] Run `./verify-release.ps1` after publication and confirm the downloaded payload matches the bootstrapper hash.
