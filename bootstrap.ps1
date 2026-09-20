@@ -24,6 +24,7 @@ $Py = Join-Path $Root '.venv\Scripts\python.exe'
 & $Py -m pip install --disable-pip-version-check -r (Join-Path $SourceRoot 'requirements.lock')
 Copy-Item -Recurse -Force (Join-Path $SourceRoot 'src') $App
 Copy-Item -Force (Join-Path $SourceRoot 'pyproject.toml') $App
+Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 & $Py -m pip install --disable-pip-version-check --no-deps $App
 @{ state='installed'; version='0.1.0'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 Write-Host 'Environment prepared. Hardware/driver validation remains required before READY.'

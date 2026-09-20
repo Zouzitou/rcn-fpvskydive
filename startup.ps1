@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $Py = Join-Path $Root '.venv\Scripts\python.exe'
 $TaskName = 'RCN-FPVSkyDive Bridge'
-$Run = "`"$Py`" -m rcn_fpv.service"
+$Run = "`"$Py`" -m rcn_fpv.watchdog"
 $Health = Join-Path $Root 'state\startup.json'
 New-Item -ItemType Directory -Force (Split-Path $Health) | Out-Null
 if ($Action -eq 'remove') {
@@ -15,6 +15,8 @@ if ($Action -eq 'remove') {
 }
 $task = schtasks.exe /Create /SC ONLOGON /TN $TaskName /TR $Run /F /RL LIMITED 2>&1
 if ($LASTEXITCODE -eq 0) {
+  schtasks.exe /Run /TN $TaskName | Out-Null
+  Start-Sleep -Seconds 2
   @{ method='scheduled-task'; command=$Run; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
   Write-Host 'Startup registered with a per-user scheduled task.'
   exit 0

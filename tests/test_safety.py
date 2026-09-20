@@ -5,6 +5,7 @@ from rcn_fpv.runtime import HealthStore
 from rcn_fpv.discovery import PortCandidate
 from rcn_fpv.protocol import encode, crc8, crc16
 from rcn_fpv.transport import SerialTransport, TransportError
+from rcn_fpv.watchdog import run as watchdog_run
 
 def test_driver_validation_fails_closed():
     ok, reasons = validate_driver(DriverEvidence("DJI", "1", False, ("USB\\VID_2CA3&PID_1020",), True))
