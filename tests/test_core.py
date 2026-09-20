@@ -1,4 +1,4 @@
-from rcn_fpv.discovery import PortCandidate, choose_candidate
+from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
@@ -11,6 +11,11 @@ def test_protocol_beats_debug_and_com_numbers_are_irrelevant():
 
 def test_unknown_usb_is_not_accepted():
     assert choose_candidate([PortCandidate("COM1", "For Protocol", "1234", "5678", "MI_02")]) is None
+
+def test_model_classification_does_not_overclaim():
+    assert classify_usb("2CA3", "1020")["status"] == "supported"
+    assert classify_usb("2CA3", "1021")["status"].startswith("unsupported")
+    assert classify_usb("FFFF", "0001")["status"] == "unknown device"
 
 def test_bad_checksum_rejected():
     b = bytearray(encode(b"abc")); b[-1] ^= 1

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Iterable, Optional
 
 SUPPORTED = {"RC-N1": {("2CA3", "1020")}, "RC-N2": set(), "RC-N3": set()}
+KNOWN_UNSUPPORTED = {"RC-N2": {("2CA3", "1021")}, "RC-N3": set()}
 
 @dataclass(frozen=True)
 class PortCandidate:
@@ -34,6 +35,14 @@ def rank_candidates(candidates: Iterable[PortCandidate]):
 def choose_candidate(candidates: Iterable[PortCandidate]):
     ranked = rank_candidates(candidates)
     return ranked[0] if ranked else None
+
+def classify_usb(vid, pid):
+    identity = ((vid or "").upper(), (pid or "").upper())
+    for model, identities in SUPPORTED.items():
+        if identity in identities: return {"model": model, "status": "supported"}
+    for model, identities in KNOWN_UNSUPPORTED.items():
+        if identity in identities: return {"model": model, "status": "unsupported pending protocol implementation"}
+    return {"model": None, "status": "unknown device"}
 
 def enumerate_protocol_ports():
     """Return pyserial ports enriched with USB/interface metadata when available."""
