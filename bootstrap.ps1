@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.13/rcn-fpvskydive-v0.1.13.zip'
-$ExpectedSha256 = '3036373ACE6F393542CDAD2BF501DBCBB515830048F7E2A67DCCE88DE0D09C5B'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.14/rcn-fpvskydive-v0.1.14.zip'
+$ExpectedSha256 = '9AC9EEADE14D0DB97F54082B5FFB82C97BDAA7E15D65D6D7C3850C7F92D5718F'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -25,7 +25,7 @@ $Py = Join-Path $Root '.venv\Scripts\python.exe'
 Copy-Item -Recurse -Force (Join-Path $SourceRoot 'src') $App
 Copy-Item -Force (Join-Path $SourceRoot 'pyproject.toml') $App
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
-& $Py -m pip install --disable-pip-version-check --no-deps $App
+& $Py -m pip install --disable-pip-version-check --no-deps --no-build-isolation $App
 $PackageVersion = (& $Py -c "import rcn_fpv; print(rcn_fpv.__version__)").Trim()
 @{ state='installed'; version=$PackageVersion; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
