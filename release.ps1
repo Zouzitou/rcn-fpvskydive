@@ -11,8 +11,8 @@ foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $stage -Re
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
 $bootstrap = Get-Content -LiteralPath 'bootstrap.ps1' -Raw
-$bootstrap = [regex]::Replace($bootstrap, "releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+\\.zip", "releases/download/$tag/rcn-fpvskydive-$tag.zip")
-$bootstrap = [regex]::Replace($bootstrap, "\$ExpectedSha256 = '[A-Fa-f0-9]+'", "`$ExpectedSha256 = '$hash'")
+$bootstrap = [regex]::Replace($bootstrap, 'releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+\.zip', "releases/download/$tag/rcn-fpvskydive-$tag.zip")
+$bootstrap = [regex]::Replace($bootstrap, '(?m)^\$ExpectedSha256 = ''[A-Fa-f0-9]+''$', ('$' + 'ExpectedSha256 = ''' + $hash + ''''))
 Set-Content -LiteralPath 'bootstrap.ps1' -Value $bootstrap -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
 git add bootstrap.ps1 release.ps1
