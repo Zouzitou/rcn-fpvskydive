@@ -10,13 +10,7 @@ def redact(value):
 
 def report(root: Path, extra=None):
     health = root / "state" / "health.json"
-    data = {
-        "windows": platform.platform(), "architecture": platform.machine(), "pid": os.getpid(), "root": redact(root),
-        "installer_runtime_version": "0.1.0", "python_environment": "unknown", "virtual_gamepad_test": "not-run",
-        "usb_devices": [], "driver": "unknown", "protocol_port": None, "serial_open": "not-run",
-        "live_frames": "not-run", "fpv_skydive": "not-run", "startup_registration": "unknown",
-        "bridge_process": {"pid": os.getpid(), "alive": True},
-    }
+    data = {"windows": platform.platform(), "architecture": platform.machine(), "pid": os.getpid(), "root": redact(root)}
     if health.exists():
         try:
             data["health"] = json.loads(health.read_text(encoding="utf-8"))

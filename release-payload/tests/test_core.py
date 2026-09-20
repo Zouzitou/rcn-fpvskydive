@@ -51,7 +51,6 @@ def test_singleton_and_health(tmp_path):
         else: assert False, "second bridge must be rejected"
         HealthStore(tmp_path).write("waiting_for_controller")
         assert report(tmp_path)["health"]["state"] == "waiting_for_controller"
-        assert report(tmp_path)["driver"] == "unknown"
     finally: lock.release()
 
 def test_gamepad_self_test_releases_backend():
