@@ -2,7 +2,7 @@ from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16, build_read_sticks, parse_duml
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
-from rcn_fpv.diagnostics import report
+from rcn_fpv.diagnostics import redact, report
 from rcn_fpv.gamepad import NullBackend, self_test
 
 def test_protocol_beats_debug_and_com_numbers_are_irrelevant():
@@ -82,3 +82,8 @@ def test_gamepad_self_test_releases_backend():
     result = self_test(backend)
     assert result.passed
     assert backend.events[-1] == ("release",)
+
+def test_diagnostic_redaction_preserves_json_structure():
+    value = redact({"port": "COM12", "ready": True, "none": None, "items": [1, "C:\\Users\\alice\\x"]})
+    assert value["port"] == "COM12" and value["ready"] is True and value["none"] is None
+    assert value["items"] == [1, "C:\\Users\\<user>\\x"]

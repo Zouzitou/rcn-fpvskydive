@@ -19,8 +19,8 @@ def main(argv=None):
         candidates = enumerate_protocol_ports()
         selected = choose_candidate(candidates)
         print(json.dumps(report(ROOT, {"version": __version__, "state_file": state.exists(),
-            "usb_candidates": [c.__dict__ for c in candidates],
-            "selected_protocol_port": selected.__dict__ if selected else None}), indent=2))
+            "usb_devices": [c.__dict__ for c in candidates],
+            "protocol_port": selected.__dict__ if selected else None}), indent=2))
         return 0
     if args.command == "start":
         try:
