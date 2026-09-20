@@ -13,9 +13,16 @@ if ($Action -eq 'remove') {
   @{ method='none'; removed=$true; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
   exit 0
 }
-$task = schtasks.exe /Create /SC ONLOGON /TN $TaskName /TR $Run /F /RL LIMITED 2>&1
-if ($LASTEXITCODE -eq 0) {
-  schtasks.exe /Run /TN $TaskName | Out-Null
+$task = @()
+$taskExit = 1
+try {
+  $task = @(schtasks.exe /Create /SC ONLOGON /TN $TaskName /TR $Run /F /RL LIMITED 2>&1)
+  $taskExit = $LASTEXITCODE
+} catch {
+  $task = @($_.Exception.Message)
+}
+if ($taskExit -eq 0) {
+  try { schtasks.exe /Run /TN $TaskName 2>$null | Out-Null } catch { }
   Start-Sleep -Seconds 2
   @{ method='scheduled-task'; command=$Run; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
   Write-Host 'Startup registered with a per-user scheduled task.'
