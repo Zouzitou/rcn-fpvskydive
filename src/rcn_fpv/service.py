@@ -6,7 +6,7 @@ from .gamepad import VigemBackend, XboxOutput, self_test
 from .runtime import HealthStore
 from .transport import SerialTransport
 
-def run(root, interval=0.1):
+def run(root, interval=0.02):
     backend = VigemBackend()
     result = self_test(backend)
     if not result.passed:

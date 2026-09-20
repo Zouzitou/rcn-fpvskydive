@@ -12,18 +12,18 @@ class TransportResult:
     message: str
 
 class SerialTransport:
-    def __init__(self, candidate: PortCandidate, baudrate=115200, serial_factory=None):
+    def __init__(self, candidate: PortCandidate, baudrate=115200, timeout=0.05, serial_factory=None):
         if not candidate.is_protocol or candidate.is_debug:
             raise TransportError("refusing to open non-Protocol or Debug interface")
         self.candidate = candidate; self.baudrate = baudrate
-        self.serial_factory = serial_factory; self.serial = None; self.buffer = bytearray()
+        self.serial_factory = serial_factory; self.timeout = timeout; self.serial = None; self.buffer = bytearray()
     def open(self):
         try:
             factory = self.serial_factory
             if factory is None:
                 from serial import Serial
                 factory = Serial
-            self.serial = factory(self.candidate.device, self.baudrate, timeout=0.2)
+            self.serial = factory(self.candidate.device, self.baudrate, timeout=self.timeout)
             return TransportResult(True, f"opened Protocol port {self.candidate.device}")
         except Exception as exc:
             raise TransportError(f"unable to open Protocol port {self.candidate.device}: {exc}") from exc

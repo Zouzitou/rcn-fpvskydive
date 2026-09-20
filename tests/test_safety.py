@@ -42,7 +42,7 @@ def test_lifecycle_requires_fresh_live_input_after_reconnect(tmp_path):
 
 def test_transport_reads_incremental_frames():
     class FakeSerial:
-        def __init__(self, *args, **kwargs): self.closed = False
+        def __init__(self, *args, **kwargs): self.closed = False; self.kwargs = kwargs
         def read(self, _):
             packet = bytearray(13); packet[0] = 0x55; packet[1:3] = (13).to_bytes(2, "little")
             packet[3] = crc8(packet[:3]); packet[-2:] = crc16(packet[:-2]).to_bytes(2, "little")
@@ -50,8 +50,9 @@ def test_transport_reads_incremental_frames():
         def write(self, data): return len(data)
         def close(self): self.closed = True
     port = PortCandidate("COM8", "DJI For Protocol", "2CA3", "1020", "MI_02")
-    transport = SerialTransport(port, serial_factory=FakeSerial)
+    transport = SerialTransport(port, timeout=0.01, serial_factory=FakeSerial)
     assert transport.open().opened
+    assert transport.serial.kwargs["timeout"] == 0.01
     assert transport.read_frames()[0][0] == 0x55
     transport.close()
 
