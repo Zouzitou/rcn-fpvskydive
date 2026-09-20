@@ -4,6 +4,8 @@ from .gamepad import self_test
 from .lifecycle import BridgeState, Lifecycle
 from .runtime import ProcessLock, SingletonError
 from .logging import JsonlLogger
+from .protocol import parse_rcn1_sticks
+from .mapping import map_sticks
 
 class Bridge:
     def __init__(self, root, discovery, transport_factory, output, health):
@@ -12,6 +14,7 @@ class Bridge:
         self.logger = JsonlLogger(root)
         self.lock = ProcessLock(root / "state" / "bridge.lock"); self.transport = None
         self.last_frame_at = None
+        self.previous_axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
     def start(self):
         self.lock.acquire()
         self.logger.event("bridge_start", pid=__import__("os").getpid())
@@ -29,10 +32,19 @@ class Bridge:
         if self.transport is None:
             return self.connect_if_available()
         frames = self.transport.read_frames()
-        if frames:
+        valid = 0
+        for packet in frames:
+            decoded = parse_rcn1_sticks(packet)
+            if decoded is None: continue
+            axes = map_sticks(decoded)
+            for name, value in axes.items(): self.lifecycle.verification.observe(name, self.previous_axes[name], value)
+            self.previous_axes = axes; valid += 1
+            if self.lifecycle.state == BridgeState.CONNECTED and hasattr(self.output, "set_axes"):
+                self.output.set_axes(axes)
+        if valid:
             self.last_frame_at = monotonic(); self.lifecycle.frame(self.last_frame_at)
-            self.logger.event("valid_frames", count=len(frames))
-        return bool(frames)
+            self.logger.event("valid_frames", count=valid)
+        return bool(valid)
     def disconnect(self):
         if self.transport:
             self.transport.close(); self.transport = None
