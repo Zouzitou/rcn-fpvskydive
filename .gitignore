@@ -9,3 +9,4 @@ build/
 release/
 release-next/
 release-*
+.build-check/
