@@ -12,8 +12,10 @@ def report(root: Path, extra=None):
     health = root / "state" / "health.json"
     data = {"windows": platform.platform(), "architecture": platform.machine(), "pid": os.getpid(), "root": redact(root)}
     if health.exists():
-        try: data["health"] = json.loads(health.read_text(encoding="utf-8"))
-            except (OSError, ValueError): data["health"] = {"error": "unreadable health file"}
+        try:
+            data["health"] = json.loads(health.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data["health"] = {"error": "unreadable health file"}
     data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]
     if extra: data.update({k: redact(v) for k, v in extra.items()})
     return data
