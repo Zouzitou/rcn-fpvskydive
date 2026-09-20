@@ -14,6 +14,7 @@ class Bridge:
         self.logger = JsonlLogger(root)
         self.lock = ProcessLock(root / "state" / "bridge.lock"); self.transport = None
         self.last_frame_at = None
+        self.last_wait_logged_at = None
         self.previous_axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
     def start(self):
         self.lock.acquire()
@@ -22,7 +23,13 @@ class Bridge:
         self.lifecycle.waiting()
     def connect_if_available(self):
         candidate = self.discovery()
-        if candidate is None: self.lifecycle.waiting(); self.logger.event("waiting_for_controller"); return False
+        if candidate is None:
+            self.lifecycle.waiting()
+            now = monotonic()
+            if self.last_wait_logged_at is None or now - self.last_wait_logged_at >= 30:
+                self.logger.event("waiting_for_controller")
+                self.last_wait_logged_at = now
+            return False
         self.lifecycle.candidate_found()
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
         self.transport = self.transport_factory(candidate)

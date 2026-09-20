@@ -25,6 +25,12 @@ def test_bridge_starts_neutral_and_stops_cleanly(tmp_path):
     bridge.start(); bridge.poll_once(); bridge.stop()
     assert output.events == ["neutral", "release", "neutral", "release"]
 
+def test_bridge_rate_limits_waiting_log(tmp_path):
+    bridge = Bridge(tmp_path, lambda: None, Transport, Output(), HealthStore(tmp_path))
+    bridge.start(); bridge.poll_once(); bridge.poll_once(); bridge.stop()
+    lines = (tmp_path / "logs" / "bridge.jsonl").read_text(encoding="utf-8").splitlines()
+    assert sum('"event":"waiting_for_controller"' in line for line in lines) == 1
+
 def test_bridge_opens_only_discovered_candidate(tmp_path):
     port=PortCandidate("COM9", "For Protocol", "2CA3", "1020", "MI_02")
     bridge=Bridge(tmp_path, lambda: port, Transport, Output(), HealthStore(tmp_path))
