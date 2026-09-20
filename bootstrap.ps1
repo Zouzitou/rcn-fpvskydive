@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.11/rcn-fpvskydive-v0.1.11.zip'
-$ExpectedSha256 = '7CDE3525A4DCDCA4639D0A743321127EC415011A20BDB591C8A802DFDD191A9C'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.12/rcn-fpvskydive-v0.1.12.zip'
+$ExpectedSha256 = '4F8E6A25DAA3A80738C440298C2EF9312EF59DA89305D9CAC40D22F6768C3ECC'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -26,5 +26,7 @@ Copy-Item -Recurse -Force (Join-Path $SourceRoot 'src') $App
 Copy-Item -Force (Join-Path $SourceRoot 'pyproject.toml') $App
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 & $Py -m pip install --disable-pip-version-check --no-deps $App
-@{ state='installed'; version='0.1.0'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
+$PackageVersion = (& $Py -c "import rcn_fpv; print(rcn_fpv.__version__)").Trim()
+@{ state='installed'; version=$PackageVersion; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
 Write-Host 'Environment prepared. Hardware/driver validation remains required before READY.'
