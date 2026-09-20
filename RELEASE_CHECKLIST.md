@@ -10,4 +10,4 @@
 - [ ] Verify virtual gamepad self-test cleanup and no stuck axes/buttons.
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
 - [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
-- [ ] Use the manual `release` workflow to run tests, package the exact allowlisted files, generate SHA-256, and publish both payload and checksum manifest.
+- [ ] Locally run `py -m pytest -q`, package the exact allowlisted files, generate SHA-256, and publish with `gh release create`; GitHub Actions is intentionally not used.
