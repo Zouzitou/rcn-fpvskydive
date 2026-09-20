@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rcn-fpvskydive"
-version = "0.1.0"
+version = "0.1.9"
 description = "Safe DJI RC-N controller bridge for FPV SkyDive"
 requires-python = ">=3.9"
 dependencies = ["pyserial==3.5", "vgamepad==0.1.0"]

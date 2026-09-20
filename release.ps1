@@ -20,8 +20,11 @@ Set-Content -LiteralPath 'README.md' -Value $readme -NoNewline
 $init = Get-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Raw
 $init = [regex]::Replace($init, '__version__ = "[0-9.]+"', "__version__ = `"$($tag.TrimStart('v'))`"")
 Set-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Value $init -NoNewline
+$project = Get-Content -LiteralPath 'pyproject.toml' -Raw
+$project = [regex]::Replace($project, '(?m)^version = "[0-9.]+"$', "version = `"$($tag.TrimStart('v'))`"")
+Set-Content -LiteralPath 'pyproject.toml' -Value $project -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
-git add bootstrap.ps1 README.md release.ps1
+git add bootstrap.ps1 README.md release.ps1 pyproject.toml src/rcn_fpv/__init__.py
 git commit -m "Prepare $tag release"
 git push
 gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."
