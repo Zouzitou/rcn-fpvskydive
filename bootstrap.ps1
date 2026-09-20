@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.12/rcn-fpvskydive-v0.1.12.zip'
-$ExpectedSha256 = '4F8E6A25DAA3A80738C440298C2EF9312EF59DA89305D9CAC40D22F6768C3ECC'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.13/rcn-fpvskydive-v0.1.13.zip'
+$ExpectedSha256 = '3036373ACE6F393542CDAD2BF501DBCBB515830048F7E2A67DCCE88DE0D09C5B'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
