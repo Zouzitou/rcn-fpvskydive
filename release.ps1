@@ -17,6 +17,9 @@ Set-Content -LiteralPath 'bootstrap.ps1' -Value $bootstrap -NoNewline
 $readme = Get-Content -LiteralPath 'README.md' -Raw
 $readme = [regex]::Replace($readme, 'raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v[0-9.]+/bootstrap\.ps1', "raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/$tag/bootstrap.ps1")
 Set-Content -LiteralPath 'README.md' -Value $readme -NoNewline
+$init = Get-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Raw
+$init = [regex]::Replace($init, '__version__ = "[0-9.]+"', "__version__ = `"$($tag.TrimStart('v'))`"")
+Set-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Value $init -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
 git add bootstrap.ps1 README.md release.ps1
 git commit -m "Prepare $tag release"
