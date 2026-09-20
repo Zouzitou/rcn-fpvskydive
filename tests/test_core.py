@@ -1,6 +1,6 @@
 from rcn_fpv.discovery import PortCandidate, choose_candidate
 from rcn_fpv.mapping import AxisConfig, map_axis
-from rcn_fpv.protocol import encode, parse
+from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
 from rcn_fpv.diagnostics import report
 from rcn_fpv.gamepad import NullBackend, self_test
@@ -15,6 +15,17 @@ def test_unknown_usb_is_not_accepted():
 def test_bad_checksum_rejected():
     b = bytearray(encode(b"abc")); b[-1] ^= 1
     assert parse(b) == []
+
+def test_rcn1_decoder_requires_valid_duml_frame():
+    packet = bytearray(38); packet[0] = 0x55
+    packet[1:3] = (38).to_bytes(2, "little"); packet[3] = crc8(packet[:3])
+    for offset, value in ((13, 1684), (16, 364), (19, 1024), (22, 1024), (25, 1024)):
+        packet[offset:offset + 2] = value.to_bytes(2, "little")
+    packet[-2:] = crc16(packet[:-2]).to_bytes(2, "little")
+    decoded = parse_rcn1_sticks(bytes(packet))
+    assert decoded and decoded.right_h == 1684 and decoded.left_v == 1024
+    packet[-1] ^= 1
+    assert parse_rcn1_sticks(bytes(packet)) is None
 
 def test_mapping_dead_zone_and_inversion():
     assert map_axis(0.01, AxisConfig()) == 0
