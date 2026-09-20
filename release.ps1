@@ -1,0 +1,22 @@
+[CmdletBinding()]
+param([Parameter(Mandatory=$true)][string]$Version)
+$ErrorActionPreference = 'Stop'
+$tag = if ($Version.StartsWith('v')) { $Version } else { "v$Version" }
+$stage = Join-Path $env:TEMP ('rcn-release-' + [guid]::NewGuid().ToString('N'))
+$zip = Join-Path $stage "rcn-fpvskydive-$tag.zip"
+New-Item -ItemType Directory -Force -Path $stage | Out-Null
+py -m pytest -q
+$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $stage -Recurse -Force }
+Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
+$hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
+$bootstrap = Get-Content -LiteralPath 'bootstrap.ps1' -Raw
+$bootstrap = [regex]::Replace($bootstrap, "releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+\\.zip", "releases/download/$tag/rcn-fpvskydive-$tag.zip")
+$bootstrap = [regex]::Replace($bootstrap, "\$ExpectedSha256 = '[A-Fa-f0-9]+'", "`$ExpectedSha256 = '$hash'")
+Set-Content -LiteralPath 'bootstrap.ps1' -Value $bootstrap -NoNewline
+Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
+git add bootstrap.ps1 release.ps1
+git commit -m "Prepare $tag release"
+git push
+gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."
+Write-Host "Published $tag with SHA-256 $hash"
