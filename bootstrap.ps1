@@ -25,6 +25,7 @@ $Py = Join-Path $Root '.venv\Scripts\python.exe'
 Copy-Item -Recurse -Force (Join-Path $SourceRoot 'src') $App
 Copy-Item -Force (Join-Path $SourceRoot 'pyproject.toml') $App
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
 & $Py -m pip install --disable-pip-version-check --no-deps --no-build-isolation $App
 $PackageVersion = (& $Py -c "import rcn_fpv; print(rcn_fpv.__version__)").Trim()
 @{ state='installed'; version=$PackageVersion; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')

@@ -42,6 +42,8 @@ rcn-fpv repair
 rcn-fpv uninstall
 ```
 
+The installed uninstaller is also available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
+
 ## Security
 
 Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.
