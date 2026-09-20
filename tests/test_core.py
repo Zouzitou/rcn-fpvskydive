@@ -1,6 +1,6 @@
 from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
-from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16
+from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16, build_read_sticks, parse_duml
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
 from rcn_fpv.diagnostics import report
 from rcn_fpv.gamepad import NullBackend, self_test
@@ -31,6 +31,10 @@ def test_rcn1_decoder_requires_valid_duml_frame():
     assert decoded and decoded.right_h == 1684 and decoded.left_v == 1024
     packet[-1] ^= 1
     assert parse_rcn1_sticks(bytes(packet)) is None
+
+def test_duml_read_sticks_command_is_valid():
+    packet = build_read_sticks()
+    assert len(packet) == 13 and parse_duml(packet) == packet[4:-2]
 
 def test_mapping_dead_zone_and_inversion():
     assert map_axis(0.01, AxisConfig()) == 0

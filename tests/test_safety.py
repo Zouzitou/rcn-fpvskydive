@@ -39,6 +39,7 @@ def test_transport_reads_incremental_frames():
             packet = bytearray(13); packet[0] = 0x55; packet[1:3] = (13).to_bytes(2, "little")
             packet[3] = crc8(packet[:3]); packet[-2:] = crc16(packet[:-2]).to_bytes(2, "little")
             return bytes(packet)
+        def write(self, data): return len(data)
         def close(self): self.closed = True
     port = PortCandidate("COM8", "DJI For Protocol", "2CA3", "1020", "MI_02")
     transport = SerialTransport(port, serial_factory=FakeSerial)

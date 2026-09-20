@@ -4,7 +4,7 @@ from .gamepad import self_test
 from .lifecycle import BridgeState, Lifecycle
 from .runtime import ProcessLock, SingletonError
 from .logging import JsonlLogger
-from .protocol import parse_rcn1_sticks
+from .protocol import parse_rcn1_sticks, build_enable_simulator, build_read_sticks
 from .mapping import map_sticks
 
 class Bridge:
@@ -27,6 +27,9 @@ class Bridge:
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
         self.transport = self.transport_factory(candidate)
         result = self.transport.open()
+        if hasattr(self.transport, "write"):
+            self.transport.write(build_enable_simulator())
+            self.transport.write(build_read_sticks())
         self.logger.event("protocol_open", message=getattr(result, "message", "opened")); return True
     def poll_once(self):
         if self.transport is None:

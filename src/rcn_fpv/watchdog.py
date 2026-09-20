@@ -22,3 +22,7 @@ def run(root: Path, max_restarts=5):
             health.write("failed", reason="watchdog restart limit reached", restart_count=failures)
             return code or 1
         time.sleep(delay)
+
+if __name__ == "__main__":
+    root = Path(__import__("os").environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
+    raise SystemExit(run(root))

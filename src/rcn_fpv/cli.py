@@ -43,3 +43,6 @@ def main(argv=None):
         return 0
     print(f"{args.command}: installer/runtime operation is not available until installed via bootstrap.ps1", file=sys.stderr)
     return 2
+
+if __name__ == "__main__":
+    raise SystemExit(main())

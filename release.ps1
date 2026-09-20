@@ -24,7 +24,7 @@ $readme = Get-Content -LiteralPath 'README.md' -Raw
 $readme = [regex]::Replace($readme, 'raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v[0-9.]+/bootstrap\.ps1', "raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/$tag/bootstrap.ps1")
 Set-Content -LiteralPath 'README.md' -Value $readme -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
-git add bootstrap.ps1 README.md release.ps1 pyproject.toml src/rcn_fpv/__init__.py
+git add -A
 git commit -m "Prepare $tag release"
 git push
 gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."

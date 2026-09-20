@@ -63,6 +63,15 @@ def parse_duml_stream(buffer: bytearray):
         if parse_duml(packet) is not None: packets.append(packet)
     return packets
 
+def build_duml(source=0x0A, target=0x06, cmd_type=0x40, cmd_set=0x06, cmd_id=0x01, payload=b"", sequence=0x34EB):
+    length = 13 + len(payload)
+    header = bytearray([0x55, length & 0xFF, ((length >> 8) | 0x04) & 0xFF])
+    packet = header + bytes([crc8(header)]) + bytes([source, target]) + sequence.to_bytes(2, "little") + bytes([cmd_type, cmd_set, cmd_id]) + payload
+    return bytes(packet) + crc16(packet).to_bytes(2, "little")
+
+def build_enable_simulator(): return build_duml(cmd_id=0x24, payload=b"\x01")
+def build_read_sticks(): return build_duml(cmd_id=0x01)
+
 def checksum(data: bytes) -> int:
     return sum(data) & 0xFF
 

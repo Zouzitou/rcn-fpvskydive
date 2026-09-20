@@ -26,7 +26,7 @@ py -m venv .venv
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.14/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.15/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.

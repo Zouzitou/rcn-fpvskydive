@@ -23,3 +23,8 @@ def run(root, interval=0.1):
     except KeyboardInterrupt:
         pass
     finally: bridge.stop()
+
+if __name__ == "__main__":
+    from pathlib import Path
+    root = Path(__import__("os").environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
+    run(root)

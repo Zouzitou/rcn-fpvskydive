@@ -35,6 +35,9 @@ class SerialTransport:
         if on_frame:
             for frame in frames: on_frame(frame)
         return frames
+    def write(self, data: bytes):
+        if self.serial is None: raise TransportError("transport is not open")
+        return self.serial.write(data)
     def close(self):
         if self.serial is not None:
             try: self.serial.close()
