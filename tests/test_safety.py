@@ -2,6 +2,9 @@ from rcn_fpv.driver import DriverEvidence, pnputil_command, validate_driver
 from rcn_fpv.startup import choose_startup_method
 from rcn_fpv.lifecycle import BridgeState, Lifecycle
 from rcn_fpv.runtime import HealthStore
+from rcn_fpv.discovery import PortCandidate
+from rcn_fpv.protocol import encode
+from rcn_fpv.transport import SerialTransport, TransportError
 
 def test_driver_validation_fails_closed():
     ok, reasons = validate_driver(DriverEvidence("DJI", "1", False, ("USB\\VID_2CA3&PID_1020",), True))
@@ -22,3 +25,20 @@ def test_lifecycle_requires_all_live_axes(tmp_path):
     for axis in life.verification.required_axes: life.verification.observe(axis, 0.0, 0.2)
     life.frame(2.0); assert life.state == BridgeState.CONNECTED
     assert life.lost() == 1
+
+def test_transport_reads_incremental_frames():
+    class FakeSerial:
+        def __init__(self, *args, **kwargs): self.closed = False
+        def read(self, _): return encode(b"axis")
+        def close(self): self.closed = True
+    port = PortCandidate("COM8", "DJI For Protocol", "2CA3", "1020", "MI_02")
+    transport = SerialTransport(port, serial_factory=FakeSerial)
+    assert transport.open().opened
+    assert transport.read_frames()[0].payload == b"axis"
+    transport.close()
+
+def test_transport_rejects_debug_port():
+    port = PortCandidate("COM8", "DJI For Debug", "2CA3", "1020", "MI_04")
+    try: SerialTransport(port)
+    except TransportError: pass
+    else: assert False, "debug interface must never be opened"
