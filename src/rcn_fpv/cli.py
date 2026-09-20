@@ -24,6 +24,7 @@ def main(argv=None):
         return 0
     if args.command == "start":
         try:
+            (ROOT / "state" / "stop.request").unlink(missing_ok=True)
             from .service import run
             run(ROOT)
             return 0
@@ -33,7 +34,10 @@ def main(argv=None):
             print(f"start failed safely: {exc}", file=sys.stderr)
             return 2
     if args.command == "stop":
-        print("stop: request the running bridge to stop from its console or service manager")
+        request = ROOT / "state" / "stop.request"
+        request.parent.mkdir(parents=True, exist_ok=True)
+        request.write_text("operator requested a safe bridge stop\n", encoding="utf-8")
+        print("stop requested: the bridge will neutralize controls and exit safely")
         return 0
     if args.command == "repair":
         print("repair: rerun the verified bootstrapper to repair the managed environment")

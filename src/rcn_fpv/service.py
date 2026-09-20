@@ -17,6 +17,9 @@ def run(root, interval=0.1):
     bridge.start()
     try:
         while True:
+            if (root / "state" / "stop.request").exists():
+                HealthStore(root).write("stopping", reason="operator requested stop")
+                return 0
             try: bridge.poll_once()
             except Exception: bridge.disconnect()
             time.sleep(interval)
