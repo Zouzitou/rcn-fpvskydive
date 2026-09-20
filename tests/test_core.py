@@ -66,6 +66,17 @@ def test_stale_singleton_lock_is_reclaimed(tmp_path, monkeypatch):
     assert lock.acquire()
     lock.release()
 
+def test_inaccessible_singleton_lock_is_not_reclaimed(tmp_path, monkeypatch):
+    path = tmp_path / "bridge.lock"
+    path.write_text("pid=1234\nstarted=0\n", encoding="ascii")
+    monkeypatch.setattr("rcn_fpv.runtime.os.kill", lambda *_: (_ for _ in ()).throw(PermissionError()))
+    try:
+        ProcessLock(path).acquire()
+    except SingletonError:
+        pass
+    else:
+        assert False, "an inaccessible lock must fail closed"
+
 def test_gamepad_self_test_releases_backend():
     backend = NullBackend()
     result = self_test(backend)
