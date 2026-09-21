@@ -1,7 +1,7 @@
 # Release checklist
 
 - [ ] Build from a clean checkout with pinned dependencies.
-- [ ] Generate and review the SHA-256 manifest for the release artifact.
+- [ ] Generate and review the SHA-256 manifest for the deterministic allowlisted release artifact.
 - [ ] Verify first install, repair, reboot/login startup, and uninstall.
 - [ ] Verify unplug/replug, COM renumbering, sleep/resume, and duplicate-process prevention.
 - [ ] Verify wrong-port/debug-only detection and DJI Assistant 2 interference guidance.

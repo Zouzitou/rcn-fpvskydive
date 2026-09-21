@@ -14,6 +14,10 @@ def test_startup_records_an_immediate_launch_test():
     startup = (Path(__file__).parents[1] / "startup.ps1").read_text()
     assert "Test-BridgeLaunch" in startup and "startup_test=$launch" in startup
 
+def test_release_uses_a_deterministic_allowlisted_archive():
+    release = (Path(__file__).parents[1] / "release.ps1").read_text()
+    assert "New-DeterministicZip" in release and "Sort-Object FullName" in release
+
 from rcn_fpv import cli
 
 def test_stop_command_creates_safe_request(tmp_path, monkeypatch, capsys):
