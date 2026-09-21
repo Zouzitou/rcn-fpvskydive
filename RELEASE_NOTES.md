@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.62
+# RCN FPV SkyDive v0.1.63
 
 ## Highlights
 
@@ -7,6 +7,7 @@
 - The Rust package metadata now correctly declares the project’s AGPLv3 license.
 - Repeated transport failures now use a bounded reconnect delay instead of retrying in a rapid loop.
 - The `repair` command now performs a verified reinstall of its pinned release payload instead of only repairing launcher state.
+- Removed the unused Python bridge and pytest suite so the public source tree matches the shipped native Rust runtime.
 
 ## Flight notes
 
