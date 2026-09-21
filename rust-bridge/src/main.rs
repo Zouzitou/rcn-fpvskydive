@@ -16,7 +16,7 @@ use thiserror::Error;
 use vigem_rust::{BusError, Client, ClientError, Ready, TargetHandle, Xbox360, X360Report};
 use windows::Win32::Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HANDLE};
 use windows::Win32::System::Threading::CreateMutexW;
-use windows::core::w;
+use windows::core::HSTRING;
 
 #[derive(Debug, Error)]
 enum BridgeError {
@@ -330,7 +330,12 @@ impl Drop for WatchMutex {
 }
 
 fn acquire_watch_mutex() -> Result<WatchMutex, BridgeError> {
-    let handle = unsafe { CreateMutexW(None, true, w!("Global\\RCN-FPVSkyDive-Bridge")) }
+    acquire_watch_mutex_named("Global\\RCN-FPVSkyDive-Bridge")
+}
+
+fn acquire_watch_mutex_named(name: &str) -> Result<WatchMutex, BridgeError> {
+    let name = HSTRING::from(name);
+    let handle = unsafe { CreateMutexW(None, true, &name) }
         .map_err(|error| BridgeError::Io(std::io::Error::other(error.to_string())))?;
     if unsafe { GetLastError() }.0 == ERROR_ALREADY_EXISTS.0 {
         drop(WatchMutex(handle));
@@ -974,7 +979,7 @@ fn main() -> Result<(), BridgeError> {
 
 #[cfg(test)]
 mod status_tests {
-    use super::{BridgeError, acquire_watch_mutex, diagnostic_category, escape_json, redact_text};
+    use super::{BridgeError, acquire_watch_mutex_named, diagnostic_category, escape_json, redact_text};
 
     #[test]
     fn escapes_status_text_for_json() {
@@ -983,9 +988,10 @@ mod status_tests {
 
     #[test]
     fn rejects_a_second_watcher_owner() {
-        let first = acquire_watch_mutex().expect("first watcher owner");
+        let name = format!("Global\\RCN-FPVSkyDive-Bridge-test-{}", std::process::id());
+        let first = acquire_watch_mutex_named(&name).expect("first watcher owner");
         assert!(matches!(
-            acquire_watch_mutex(),
+            acquire_watch_mutex_named(&name),
             Err(BridgeError::AlreadyRunning)
         ));
         drop(first);

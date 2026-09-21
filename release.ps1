@@ -27,7 +27,9 @@ $cargo = [regex]::Replace($cargo, '(?m)^version = "[0-9.]+"$', "version = `"$($t
 Set-Content -LiteralPath 'rust-bridge/Cargo.toml' -Value $cargo -NoNewline
 & .\verify-scripts.ps1
 cargo test --manifest-path rust-bridge\Cargo.toml
+if ($LASTEXITCODE -ne 0) { throw 'Rust tests failed; release cancelled.' }
 cargo build --release --manifest-path rust-bridge\Cargo.toml
+if ($LASTEXITCODE -ne 0) { throw 'Rust release build failed; release cancelled.' }
 $bridge = 'rust-bridge\target\release\rcn-bridge.exe'
 $selfTestPassed = $false
 for ($attempt = 1; $attempt -le 5; $attempt++) {
@@ -52,6 +54,9 @@ Set-Content -LiteralPath 'README.md' -Value $readme -NoNewline
 Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Value "$hash  rcn-fpvskydive-$tag.zip"
 git add -A
 git commit -m "Prepare $tag release"
+if ($LASTEXITCODE -ne 0) { throw 'Git commit failed; release cancelled.' }
 git push
+if ($LASTEXITCODE -ne 0) { throw 'Git push failed; release cancelled.' }
 gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."
+if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
 Write-Host "Published $tag with SHA-256 $hash"
