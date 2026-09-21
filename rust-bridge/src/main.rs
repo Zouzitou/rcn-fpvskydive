@@ -159,8 +159,33 @@ fn persist_device_identity(port: &str) {
 fn json_string_field(contents: &str, field: &str) -> Option<String> {
     let marker = format!("\"{field}\":\"");
     let start = contents.find(&marker)? + marker.len();
-    let end = contents[start..].find('"')? + start;
-    Some(contents[start..end].to_string())
+    let bytes = contents.as_bytes();
+    let mut index = start;
+    let mut escaped = false;
+    let mut value = String::new();
+    while index < bytes.len() {
+        let character = bytes[index] as char;
+        if escaped {
+            value.push(character);
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == '"' {
+            return Some(value);
+        } else {
+            value.push(character);
+        }
+        index += 1;
+    }
+    None
+}
+
+fn normalize_instance_id(value: &str) -> String {
+    let mut normalized = value.to_string();
+    while normalized.contains("\\\\") {
+        normalized = normalized.replace("\\\\", "\\");
+    }
+    normalized
 }
 
 fn json_number_field(contents: &str, field: &str) -> Option<u64> {
@@ -218,7 +243,10 @@ fn live_verification_valid(port: &str) -> bool {
         .map(|time| time.as_secs())
         .unwrap_or(0);
     let _ = port;
-    current_device_instance_id().as_deref() == Some(instance_id.as_str())
+    let Some(current_instance_id) = current_device_instance_id() else {
+        return false;
+    };
+    normalize_instance_id(&current_instance_id) == normalize_instance_id(&instance_id)
         && now.saturating_sub(verified_unix) <= 30 * 24 * 60 * 60
 }
 

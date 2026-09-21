@@ -7,8 +7,13 @@ $Wrapper = Join-Path $Root 'launch-fpv.ps1'
 if (-not (Test-Path -LiteralPath $Bridge)) { throw "Installed bridge is missing: $Bridge" }
 if (-not (Test-Path -LiteralPath $Wrapper)) { throw "Installed wrapper is missing: $Wrapper" }
 
-$selfTest = & $Bridge self-test 2>&1
-if ($LASTEXITCODE -ne 0) { throw "ViGEm self-test failed: $($selfTest -join ' ')" }
+$selfTestPassed = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+  $selfTest = & $Bridge self-test 2>&1
+  if ($LASTEXITCODE -eq 0) { $selfTestPassed = $true; break }
+  if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
+}
+if (-not $selfTestPassed) { throw "ViGEm self-test failed: $($selfTest -join ' ')" }
 
 $startupPath = Join-Path $Root 'state\startup.json'
 $startup = if (Test-Path -LiteralPath $startupPath) { Get-Content -LiteralPath $startupPath -Raw | ConvertFrom-Json } else { $null }
