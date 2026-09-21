@@ -1,6 +1,7 @@
 # Release checklist
 
 - [ ] Build from a clean checkout with pinned dependencies.
+- [ ] Run `./verify-scripts.ps1` and resolve any PowerShell syntax errors.
 - [ ] Generate and review the SHA-256 manifest for the deterministic allowlisted release artifact.
 - [ ] Verify first install, repair, reboot/login startup, and uninstall.
 - [ ] Verify unplug/replug, COM renumbering, sleep/resume, and duplicate-process prevention.

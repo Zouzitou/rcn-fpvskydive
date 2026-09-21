@@ -18,6 +18,11 @@ def test_release_uses_a_deterministic_allowlisted_archive():
     release = (Path(__file__).parents[1] / "release.ps1").read_text()
     assert "New-DeterministicZip" in release and "Sort-Object FullName" in release
 
+def test_release_runs_powershell_syntax_preflight():
+    release = (Path(__file__).parents[1] / "release.ps1").read_text()
+    verifier = (Path(__file__).parents[1] / "verify-scripts.ps1").read_text()
+    assert "verify-scripts.ps1" in release and "Parser]::ParseFile" in verifier
+
 from rcn_fpv import cli
 
 def test_stop_command_creates_safe_request(tmp_path, monkeypatch, capsys):

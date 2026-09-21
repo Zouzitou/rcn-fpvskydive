@@ -28,8 +28,9 @@ Set-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Value $init -NoNewline
 $project = Get-Content -LiteralPath 'pyproject.toml' -Raw
 $project = [regex]::Replace($project, '(?m)^version = "[0-9.]+"$', "version = `"$($tag.TrimStart('v'))`"")
 Set-Content -LiteralPath 'pyproject.toml' -Value $project -NoNewline
+& .\verify-scripts.ps1
 py -m pytest -q
-$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','verify-release.ps1','startup.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','verify-release.ps1','verify-scripts.ps1','startup.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
 foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $payload -Recurse -Force }
 New-DeterministicZip -Source $payload -Destination $zip
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
