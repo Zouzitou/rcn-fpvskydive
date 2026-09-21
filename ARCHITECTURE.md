@@ -22,6 +22,7 @@ bootstrap.ps1
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with per-axis inversion, dead zone, trim, saturation, and response curve loaded from the managed state file; all buttons remain clear.
 - `gamepad`: native ViGEm adapter with neutral-on-start, neutral-on-smoke-test exit, and target removal when a session ends.
 - `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, persists the selected PnP instance ID, and remains neutral/awaiting until the device-specific four-axis live-input approval exists. Approval follows the PnP instance rather than a COM number, so a legitimate COM renumber does not invalidate it. It stops when the game process exits.
+- `flight console`: the native `tui` command is a read-mostly Ratatui/Crossterm dashboard over the same state files and command handlers. It never starts at login or bypasses the live-input gate. Actions that would interrupt a flight are disabled while FPV SkyDive is running, and stopping a connected bridge requires an explicit confirmation.
 
 ## Data flow
 

@@ -1,11 +1,13 @@
 [package]
 name = "rcn-bridge"
-version = "0.1.44"
+version = "0.1.45"
 edition = "2024"
 license = "MIT"
 description = "Native Windows DJI RC-N Protocol-to-Xbox bridge"
 
 [dependencies]
+crossterm = "=0.29.0"
+ratatui = { version = "=0.30.2", default-features = false, features = ["crossterm"] }
 serialport = "=4.8.1"
 thiserror = "=2.0.17"
 vigem-rust = "=0.2.0"

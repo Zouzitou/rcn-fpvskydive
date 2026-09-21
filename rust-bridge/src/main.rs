@@ -1,5 +1,6 @@
 mod mapping;
 mod protocol;
+mod tui;
 
 use mapping::{MappingConfig, mode2_with_config};
 use protocol::{drain_frames, enable_simulator, parse_sticks, read_sticks};
@@ -13,7 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 use thiserror::Error;
-use vigem_rust::{BusError, Client, ClientError, Ready, TargetHandle, Xbox360, X360Report};
+use vigem_rust::{BusError, Client, ClientError, Ready, TargetHandle, X360Report, Xbox360};
 use windows::Win32::Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HANDLE};
 use windows::Win32::System::Threading::CreateMutexW;
 use windows::core::HSTRING;
@@ -21,7 +22,7 @@ use windows::core::HSTRING;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | game-check | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | tui | start | stop | repair | uninstall | open-fpv | game-check | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -936,6 +937,9 @@ fn main() -> Result<(), BridgeError> {
     if command == "diagnose" {
         return diagnose(env::args().nth(2).as_deref() == Some("--redact"));
     }
+    if command == "tui" {
+        return tui::run();
+    }
     if command == "start" {
         return start_watch();
     }
@@ -997,7 +1001,9 @@ fn main() -> Result<(), BridgeError> {
 
 #[cfg(test)]
 mod status_tests {
-    use super::{BridgeError, acquire_watch_mutex_named, diagnostic_category, escape_json, redact_text};
+    use super::{
+        BridgeError, acquire_watch_mutex_named, diagnostic_category, escape_json, redact_text,
+    };
 
     #[test]
     fn escapes_status_text_for_json() {

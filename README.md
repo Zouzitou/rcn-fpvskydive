@@ -27,7 +27,7 @@ cargo build --release --manifest-path rust-bridge/Cargo.toml
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.44/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.45/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
@@ -62,3 +62,13 @@ Mode 2 is the native default mapping (left vertical throttle, left horizontal ya
 ## Security
 
 The installer is per-user, release-pinned, and SHA-256 verified. It never installs a driver implicitly or edits FPV SkyDive settings; use the explicit driver flow with an official DJI package and the game’s own calibration UI.
+
+## Flight console
+
+Run the native dashboard any time from PowerShell:
+
+```powershell
+& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
+```
+
+The console auto-refreshes bridge, live-verification, Xbox-target, and FPV SkyDive session health every two seconds. Use `↑/↓` or `j/k` to navigate, `Enter` to choose an action, `l` to launch, `g` to run the read-only game check, `v` to begin stick verification, `d` for redacted diagnostics, `m` to edit the mapping file, `r` to refresh, and `q` to quit. It disables unsafe actions during an active flight session and asks before stopping a bridge.
