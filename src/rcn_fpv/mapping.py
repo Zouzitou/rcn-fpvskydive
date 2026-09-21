@@ -23,13 +23,18 @@ def normalize_raw(value: int, low=364, center=1024, high=1684) -> float:
     if value <= center: return clamp((value - center) / max(center - low, 1))
     return clamp((value - center) / max(high - center, 1))
 
-def map_sticks(frame: StickFrame, configs=None):
+def map_sticks(frame: StickFrame, configs=None, transmitter_mode="mode2"):
     """Return Xbox axes using the documented FPV Mode 2 default.
 
     left vertical=throttle, left horizontal=yaw, right vertical=pitch,
     right horizontal=roll. No buttons are inferred here.
     """
     configs = configs or {name: AxisConfig() for name in ("left_x", "left_y", "right_x", "right_y")}
-    raw = {"left_x": frame.left_h, "left_y": frame.left_v,
-           "right_x": frame.right_h, "right_y": frame.right_v}
+    if transmitter_mode == "mode1":
+        # Mode 1 keeps yaw/roll horizontal but puts throttle on right vertical.
+        raw = {"left_x": frame.left_h, "left_y": frame.right_v,
+               "right_x": frame.right_h, "right_y": frame.left_v}
+    else:
+        raw = {"left_x": frame.left_h, "left_y": frame.left_v,
+               "right_x": frame.right_h, "right_y": frame.right_v}
     return {name: map_axis(normalize_raw(value), configs[name]) for name, value in raw.items()}

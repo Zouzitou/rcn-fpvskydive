@@ -46,10 +46,11 @@ rcn-fpv open-game
 
 The installed uninstaller is also available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
 
-Configure Mode 2 defaults or a specific virtual axis without editing files by hand:
+Mode 2 is the default (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Select Mode 1 or adjust a specific virtual axis without editing files by hand:
 
 ```powershell
 rcn-fpv config
+rcn-fpv config --mode mode1
 rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
 ```
 

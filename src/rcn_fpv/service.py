@@ -15,7 +15,9 @@ def run(root, interval=0.02):
     HealthStore(root).write("gamepad_ready", virtual_gamepad_test=result.message)
     backend.create()
     output = XboxOutput(backend)
-    bridge = Bridge(root, lambda: choose_candidate(enumerate_protocol_ports()), SerialTransport, output, HealthStore(root), axis_configs(load_config(root)))
+    config = load_config(root)
+    bridge = Bridge(root, lambda: choose_candidate(enumerate_protocol_ports()), SerialTransport, output, HealthStore(root),
+                    axis_configs(config), transmitter_mode=config["transmitter_mode"])
     try:
         bridge.start()
     except SingletonError:

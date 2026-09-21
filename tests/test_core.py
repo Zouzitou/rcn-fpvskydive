@@ -50,6 +50,11 @@ def test_mode2_stick_mapping_is_explicit():
     assert axes["left_x"] > 0.9 and axes["left_y"] < -0.9
     assert abs(axes["right_x"]) < 0.01 and axes["right_y"] > 0.9
 
+def test_mode1_moves_throttle_and_pitch_to_the_opposite_vertical_sticks():
+    frame = type("F", (), {"left_h": 1024, "left_v": 364, "right_h": 1024, "right_v": 1684})()
+    axes = map_sticks(frame, transmitter_mode="mode1")
+    assert axes["left_y"] > 0.9 and axes["right_y"] < -0.9
+
 def test_singleton_and_health(tmp_path):
     lock = ProcessLock(tmp_path / "bridge.lock")
     assert lock.acquire()
