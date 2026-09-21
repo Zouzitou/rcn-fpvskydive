@@ -54,6 +54,8 @@ rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
 
 `rcn-fpv repair` restores the managed local package and current-user startup registration. It does not install or replace device drivers. If the managed environment itself is missing, rerun the release-pinned bootstrap command.
 
+Startup registration immediately checks for exactly one managed bridge watchdog and records the result in `%LOCALAPPDATA%\RCN-FPVSkyDive\state\startup.json`. A failed check is reported as a warning rather than pretending setup is ready.
+
 `rcn-fpv driver-install` displays a UAC prompt and accepts only an existing `.inf` from the managed `drivers` folder. Put a verified official DJI driver package there first. The command rechecks that the active driver is DJI-provided, signed, Ports-class, and matches the RC-N1 hardware before it reports success.
 
 ## Security

@@ -7,6 +7,24 @@ $TaskName = 'RCN-FPVSkyDive Bridge'
 $Run = "`"$Py`" -m rcn_fpv.watchdog"
 $Health = Join-Path $Root 'state\startup.json'
 New-Item -ItemType Directory -Force (Split-Path $Health) | Out-Null
+function Get-BridgeProcesses {
+  @(Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction Stop | Where-Object {
+    $_.ExecutablePath -eq $Py -and $_.CommandLine -like '*rcn_fpv.watchdog*'
+  })
+}
+function Test-BridgeLaunch {
+  try {
+    $processes = @(Get-BridgeProcesses)
+    if ($processes.Count -eq 0) {
+      Start-Process -FilePath $Py -ArgumentList @('-m', 'rcn_fpv.watchdog') -WindowStyle Hidden
+      Start-Sleep -Seconds 2
+      $processes = @(Get-BridgeProcesses)
+    }
+    return @{ attempted=$true; passed=($processes.Count -eq 1); bridge_pids=@($processes | ForEach-Object { $_.ProcessId }) }
+  } catch {
+    return @{ attempted=$true; passed=$false; error=$_.Exception.Message; bridge_pids=@() }
+  }
+}
 if ($Action -eq 'remove') {
   schtasks.exe /Delete /TN $TaskName /F 2>$null | Out-Null
   Remove-Item -LiteralPath (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\RCN-FPVSkyDive.cmd') -Force -ErrorAction SilentlyContinue
@@ -23,12 +41,15 @@ try {
 }
 if ($taskExit -eq 0) {
   try { schtasks.exe /Run /TN $TaskName 2>$null | Out-Null } catch { }
-  Start-Sleep -Seconds 2
-  @{ method='scheduled-task'; command=$Run; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
-  Write-Host 'Startup registered with a per-user scheduled task.'
+  $launch = Test-BridgeLaunch
+  @{ method='scheduled-task'; command=$Run; startup_test=$launch; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
+  if ($launch.passed) { Write-Host 'Startup registered with a per-user scheduled task and immediate launch test passed.' }
+  else { Write-Warning 'Startup task was registered, but its immediate launch test did not find exactly one bridge watchdog.' }
   exit 0
 }
 $startup = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\RCN-FPVSkyDive.cmd'
 Set-Content -LiteralPath $startup -Value "@echo off`r`n$Run`r`n"
-@{ method='startup-folder'; command=$Run; task_error=($task -join ' '); timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
-Write-Host 'Scheduled task was unavailable; registered current-user Startup fallback.'
+$launch = Test-BridgeLaunch
+@{ method='startup-folder'; command=$Run; task_error=($task -join ' '); startup_test=$launch; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
+if ($launch.passed) { Write-Host 'Scheduled task was unavailable; Startup fallback registered and immediate launch test passed.' }
+else { Write-Warning 'Startup fallback was registered, but its immediate launch test did not find exactly one bridge watchdog.' }

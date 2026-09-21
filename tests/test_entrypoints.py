@@ -10,6 +10,10 @@ def test_bootstrap_installs_uninstaller():
     bootstrap = (Path(__file__).parents[1] / "bootstrap.ps1").read_text()
     assert "uninstall.ps1" in bootstrap
 
+def test_startup_records_an_immediate_launch_test():
+    startup = (Path(__file__).parents[1] / "startup.ps1").read_text()
+    assert "Test-BridgeLaunch" in startup and "startup_test=$launch" in startup
+
 from rcn_fpv import cli
 
 def test_stop_command_creates_safe_request(tmp_path, monkeypatch, capsys):
