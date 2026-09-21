@@ -1,104 +1,86 @@
 # RCN FPV SkyDive
 
-Safe, per-user Windows bridge for DJI RC-N controllers and FPV SkyDive. It exposes validated controller input as a virtual Xbox 360 controller.
+Use your **DJI RC-N1** as an Xbox controller in **FPV SkyDive** on Windows.
 
-> Native runtime: [`rust-bridge/`](rust-bridge/) is the production bridge. The installer ships its locally built `rcn-bridge.exe`; it does not require Python, pip, or pytest.
+Plug in the controller, start the game, and fly. The bridge starts only with FPV SkyDive and disappears again when the game closes.
 
-> Status: RC-N1 is hardware-validated. RC-N2 and RC-N3 may enter the same native bridge only after their healthy DJI Protocol interface returns three checksum-valid 38-byte stick frames; the virtual Xbox controller is not created before that gate passes. A name or USB vendor alone is never compatibility evidence.
+> **Supported today:** RC-N1, hardware-tested. RC-N2 and RC-N3 are detected safely but are not claimed as supported until their real USB stick protocol is tested.
 
-## Design goals
+## Before you start
 
-- One PowerShell bootstrapper, isolated under `%LOCALAPPDATA%\\RCN-FPVSkyDive`.
-- Protocol-port selection by positive USB/interface evidence; Debug ports are rejected.
-- Neutral output on startup, stale data, reconnect, shutdown, and failed self-test.
-- A locally built, SHA-256 verified native executable with no Python runtime dependency.
+You need a Windows 10/11 PC, FPV SkyDive installed through Steam, a powered-on RC-N1, and a data-capable USB-C cable. You do **not** need Python, a terminal setup, or administrator rights for the normal install.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+## Get flying
 
-## Development
+### 1. Install
 
-```powershell
-cargo test --manifest-path rust-bridge/Cargo.toml
-cargo build --release --manifest-path rust-bridge/Cargo.toml
-```
-
-## Tutorial: from install to first flight
-
-### 1. Install the recommended verified release
-
-Open **PowerShell** (not necessarily as administrator), paste this one line, and wait for the completion message:
+Open **PowerShell**, paste this, and wait for the orange “Installation Complete” screen:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.50/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.51/bootstrap.ps1 | iex
 ```
 
-This is the recommended route. The tagged bootstrapper downloads a fixed release payload and verifies its SHA-256 before it writes anything to your per-user installation. Its orange installer screen shows only friendly progress—not your Windows username or absolute local paths—and it never silently installs a driver.
+It is a fixed, SHA-256-verified release installer. It does not silently install a driver, change your game bindings, show your Windows username, or run the bridge at login.
 
-### 2. Optional: build it locally from readable source
+### 2. Plug in your controller
 
-If you would rather inspect the tagged source and compile the bridge on your own PC, install the stable Rust toolchain from [rustup.rs](https://rustup.rs), reopen PowerShell, then paste:
+Power on the RC-N1 and connect it with a proper USB data cable. If Windows shows a `DEVICE USB VCOM For Protocol` port, you are ready for the next step. The bridge deliberately ignores the Debug port.
 
-```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.50/install-from-source.ps1 | iex
-```
+### 3. Launch FPV SkyDive
 
-The source installer prints five clear stages: Rust check, source download, local optimized build, install, and virtual-Xbox verification. Compiler details and inspection files stay private on the machine instead of being streamed into the console. It does not use Python, pip, pytest, GitHub Actions, or an automatic driver install. The release installer above remains the better choice when you want the fixed SHA-256-verified package instead.
+Click **Start Menu → RCN FPV SkyDive**. It waits for the virtual Xbox controller, starts FPV SkyDive, and stops the bridge after you exit the game.
 
-### 3. Launch the game with the bridge
-
-Plug in and power on the RC-N1, then click **Start Menu → RCN FPV SkyDive**. The launcher starts the virtual Xbox bridge, waits for it to be ready, launches FPV SkyDive, and stops that exact bridge after the game exits. It never runs at Windows login.
-
-For Steam Library launches instead, open **FPV SkyDive → Properties → General → Launch Options** and paste this one-time setting:
+Want to launch straight from Steam instead? Add this once in **FPV SkyDive → Properties → General → Launch Options**:
 
 ```text
 cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
 ```
 
-### 4. Verify your sticks once
+### 4. Calibrate once in-game
 
-Use the Flight Console before your first flight:
+In FPV SkyDive, open its controller/calibration settings and bind the four stick axes. The safe Mode 2 defaults are:
 
-```powershell
-& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
-```
+| RC-N1 stick | Flight control |
+| --- | --- |
+| Left stick up/down | Throttle |
+| Left stick left/right | Yaw |
+| Right stick up/down | Pitch |
+| Right stick left/right | Roll |
 
-Choose **Verify sticks** (or press `v`). Move the prompted stick through its range while the prompt waits, then press Enter. After all four axes pass, open FPV SkyDive’s own controller-calibration screen and bind the axes there. The bridge deliberately leaves Arm, Pause, Restart, and Recover bindings alone.
+The bridge does not invent Arm, Pause, Restart, or Recover bindings—choose those in the game if you want them.
 
-### 5. Fly, then check health if anything looks wrong
+## If something does not work
 
-In the console, `l` launches FPV SkyDive and `g` runs the read-only game check. A healthy session shows **Bridge connected**, **Virtual Xbox ready**, and **FPV SkyDive running**. If Windows has no `DEVICE USB VCOM For Protocol` port, use the deliberate official-driver flow in the next section; do not use the Debug port.
-
-## Commands
-
-```powershell
-$Bridge = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive\bin\rcn-bridge.exe'
-& $Bridge status
-& $Bridge self-test
-& $Bridge probe --port COM12
-& $Bridge bridge-smoke --port COM12
-& $Bridge bridge-auto
-```
-
-`bridge-auto` remains the interactive foreground command for diagnostics; end it with `Ctrl+C` after game calibration.
-
-While FPV SkyDive is open, `& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" game-check` provides one read-only proof that the game process, connected bridge, and Windows Xbox controller are all present.
-
-The installed uninstaller is available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`. The native `open-fpv` command detects Steam libraries and opens FPV SkyDive through Steam without modifying game files.
-
-## Driver and game setup
-
-Mode 2 is the native default mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Axis inversion, dead zone, center trim, saturation, and response curve can be edited in `%LOCALAPPDATA%\RCN-FPVSkyDive\state\mapping.conf`; restart the game wrapper after changing it. Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The packaged `driver.ps1` supports a deliberate validated install when you provide the official INF: `powershell -File "$env:LOCALAPPDATA\RCN-FPVSkyDive\driver.ps1" -Action install -InfPath C:\path\dji_vcom_driver11.inf`. It rejects unsigned INFs and packages without `VID_2CA3`, requests UAC only for `pnputil`, rescans, and requires the Protocol interface to appear. The bridge never uses a Debug COM port. RC-N1 is proven on `VID_2CA3&PID_1020`; other RC-N-family Protocol interfaces are fail-closed until they complete the checksum/live-frame gate. After `self-test` and `bridge-smoke`, run `& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" verify-input` and move each stick continuously while its prompt is waiting, then press Enter; it auto-discovers the current Protocol port. Then open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
-
-## Security
-
-The installer is per-user, release-pinned, and SHA-256 verified. It never installs a driver implicitly or edits FPV SkyDive settings; use the explicit driver flow with an official DJI package and the game’s own calibration UI.
-
-## Flight console
-
-Run the native dashboard any time from PowerShell:
+Open the Flight Console:
 
 ```powershell
 & "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
 ```
 
-The console auto-refreshes bridge, live-verification, Xbox-target, and FPV SkyDive session health every two seconds. Use `↑/↓` or `j/k` to navigate, `Enter` to choose an action, `l` to launch, `g` to run the read-only game check, `v` to begin stick verification, `d` for redacted diagnostics, `m` to edit the mapping file, `r` to refresh, and `q` to quit. It disables unsafe actions during an active flight session and asks before stopping a bridge.
+It tells you whether the RC-N1, virtual Xbox controller, and FPV SkyDive are ready. Press `v` to verify stick movement and `l` to launch the game. If the controller is not found, see the [troubleshooting guide](docs/TROUBLESHOOTING.md).
+
+If Windows has no Protocol port, you may need DJI’s official VCOM driver. The app never installs it behind your back. Follow the deliberate driver instructions in [the troubleshooting guide](docs/TROUBLESHOOTING.md).
+
+## Safety and privacy
+
+- The bridge outputs neutral sticks whenever it starts, disconnects, or stops.
+- It runs only while FPV SkyDive is open—never at Windows login.
+- The installer is per-user and verifies the published release hash before installing it.
+- Your game bindings are never edited automatically.
+
+## For developers and curious pilots
+
+Want to inspect and compile the app yourself? Install stable Rust from [rustup.rs](https://rustup.rs), then run:
+
+```powershell
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.51/install-from-source.ps1 | iex
+```
+
+The same orange installer builds the tagged source locally and keeps its source/build log private on your machine. For architecture, acceptance evidence, and hardware test plans, see [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).
+
+To work on the Rust bridge:
+
+```powershell
+cargo test --manifest-path rust-bridge/Cargo.toml
+cargo build --release --manifest-path rust-bridge/Cargo.toml
+```
