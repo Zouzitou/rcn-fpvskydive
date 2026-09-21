@@ -51,7 +51,7 @@ right_y.curve=1
 if ($SourceBuild) { Set-InstallerStep 4 'Installing the locally built bridge' 'Keeping your existing mapping and settings.' }
 else { Set-InstallerStep 2 'Installing the native controller bridge' 'No Python runtime is required.' }
 Copy-Item -LiteralPath $BridgeSource -Destination $Bridge -Force
-foreach ($file in 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'verify-installed.ps1', 'installer-ui.ps1') {
+foreach ($file in 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'steam-launch-options.ps1', 'verify-installed.ps1', 'installer-ui.ps1') {
   Copy-Item -LiteralPath (Join-Path $SourceRoot $file) -Destination (Join-Path $Root $file) -Force
 }
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Installation did not produce rcn-bridge.exe.' }
@@ -66,7 +66,11 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
   if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
 }
 @{ state = 'installed'; runtime = 'native-rust'; install_mode = $InstallMode; gamepad_self_test = $SelfTestPassed; self_test_output = ($SelfTest -join "`n"); timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
-if (-not $SourceBuild) { Set-InstallerStep 4 'Setting up one-click launch' 'The bridge runs only while FPV SkyDive is open.' }
+if (-not $SourceBuild) { Set-InstallerStep 4 'Setting up Steam Play' 'Your normal Steam Play button will start the bridge.' }
+$SteamSetupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'steam-launch-options.ps1') -Action install 2>&1
+$SteamSetupExit = $LASTEXITCODE
+if ($SteamSetupExit -eq 0) { Write-InstallerText '     Steam Play is configured for FPV SkyDive.' 'Green' }
+else { Write-InstallerText '     Steam is open. Close it, then rerun this installer to finish Steam Play setup.' 'Amber' }
 $StartupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install 2>&1
 if ($LASTEXITCODE -ne 0) { throw 'Could not configure the game-only launcher.' }
 
@@ -84,4 +88,5 @@ try {
 } catch { Write-InstallerText '     Start Menu shortcut was unavailable; the Steam launch option still works.' 'Amber' }
 if (-not $SourceBuild) { Set-InstallerStep 5 'Finishing safely' 'No controller driver was installed or changed.' }
 if (-not $SelfTestPassed) { Write-InstallerText '     Virtual Xbox self-test needs attention. Check ViGEmBus before flying.' 'Amber' }
-Complete-InstallerUi 'Open Start Menu → RCN FPV SkyDive when you are ready to fly.'
+if ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Open FPV SkyDive with the normal Steam Play button.' }
+else { Complete-InstallerUi 'Start Menu works now; rerun after closing Steam to enable its Play button.' }

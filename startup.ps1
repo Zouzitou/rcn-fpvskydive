@@ -31,6 +31,6 @@ if ($Action -eq 'remove') {
   exit 0
 }
 Remove-LoginBridge
-@{ method='steam-launch-wrapper'; command='Steam launch option starts the bridge only for FPV SkyDive'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
+@{ method='steam-launch-wrapper'; command='Installer configures Steam Play to start the bridge only for FPV SkyDive'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content $Health
 @{ state='not_running'; detail='bridge starts only through the FPV SkyDive Steam wrapper'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\bridge.json')
-Write-Host 'Login startup is disabled. Configure the FPV SkyDive Steam launch option to use launch-fpv.cmd.'
+Write-Host 'Login startup is disabled. Steam Play setup is managed by the installer.'

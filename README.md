@@ -20,7 +20,7 @@
 Open **PowerShell**, paste this, and wait for the orange completion screen:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.53/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.54/bootstrap.ps1 | iex
 ```
 
 ### 2 — Connect
@@ -29,7 +29,7 @@ Power on your controller and plug it in. The app checks for a healthy controller
 
 ### 3 — Launch
 
-Click **Start Menu → RCN FPV SkyDive**. The bridge starts with the game and closes when you exit it.
+Click **Play** in Steam. The installer configures FPV SkyDive’s Steam entry to start the bridge with the game and close it when you exit.
 
 ### 4 — Calibrate in FPV SkyDive
 
@@ -42,13 +42,7 @@ Click **Start Menu → RCN FPV SkyDive**. The bridge starts with the game and cl
 
 Choose any Arm, Pause, Restart, or Recover bindings in FPV SkyDive itself.
 
-## Want to launch from Steam?
-
-Add this once in **FPV SkyDive → Properties → General → Launch Options**:
-
-```text
-cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
-```
+If Steam was open during installation, close Steam completely and run the same install command once more. This is the only time the installer needs Steam closed; it safely updates the FPV SkyDive launch option and preserves any launch arguments you already use.
 
 ## Need help?
 
@@ -74,7 +68,7 @@ Press `v` to check stick movement, `l` to launch, or read the [troubleshooting g
 To inspect and build the tagged source locally, install Rust from [rustup.rs](https://rustup.rs), then run:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.53/install-from-source.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.54/install-from-source.ps1 | iex
 ```
 
 Architecture, acceptance evidence, and the hardware test plan live in [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).

@@ -8,6 +8,8 @@ $Shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\RCN FP
 if (-not (Test-Path -LiteralPath $Bridge)) { throw "Installed bridge is missing: $Bridge" }
 if (-not (Test-Path -LiteralPath $Wrapper)) { throw "Installed wrapper is missing: $Wrapper" }
 if (-not (Test-Path -LiteralPath $Shortcut)) { throw "Installed Start-menu launcher is missing: $Shortcut" }
+$SteamOptions = Join-Path $Root 'steam-launch-options.ps1'
+if (-not (Test-Path -LiteralPath $SteamOptions)) { throw "Installed Steam Play setup helper is missing: $SteamOptions" }
 
 $selfTestPassed = $false
 for ($attempt = 1; $attempt -le 5; $attempt++) {
@@ -20,6 +22,7 @@ if (-not $selfTestPassed) { throw "ViGEm self-test failed: $($selfTest -join ' '
 $startupPath = Join-Path $Root 'state\startup.json'
 $startup = if (Test-Path -LiteralPath $startupPath) { Get-Content -LiteralPath $startupPath -Raw | ConvertFrom-Json } else { $null }
 if (-not $startup -or $startup.method -ne 'steam-launch-wrapper') { throw 'Login startup is not in the expected game-wrapper mode.' }
+$steamStatus = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $SteamOptions -Action status 2>$null | ConvertFrom-Json
 
 # Keep this harmless command alive long enough for the wrapper to observe its
 # process and exercise the normal post-game bridge cleanup path. A uniquely
@@ -44,6 +47,7 @@ if ($watchers.Count -ne 0) { throw "Wrapper left $($watchers.Count) bridge watch
   self_test = 'passed'
   startup_mode = $startup.method
   start_menu_launcher = $true
+  steam_play_configured = [bool]$steamStatus.configured
   wrapper_exit = 0
   remaining_watchers = $watchers.Count
 } | ConvertTo-Json
