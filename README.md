@@ -29,20 +29,20 @@ cargo build --release --manifest-path rust-bridge/Cargo.toml
 Open **PowerShell** (not necessarily as administrator), paste this one line, and wait for the completion message:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.47/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.48/bootstrap.ps1 | iex
 ```
 
-This is the recommended route. The tagged bootstrapper downloads a fixed release payload and verifies its SHA-256 before it writes anything to your per-user installation. It never silently installs a driver.
+This is the recommended route. The tagged bootstrapper downloads a fixed release payload and verifies its SHA-256 before it writes anything to your per-user installation. Its orange installer screen shows only friendly progress—not your Windows username or absolute local paths—and it never silently installs a driver.
 
 ### 2. Optional: build it locally from readable source
 
 If you would rather inspect the tagged source and compile the bridge on your own PC, install the stable Rust toolchain from [rustup.rs](https://rustup.rs), reopen PowerShell, then paste:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.47/install-from-source.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.48/install-from-source.ps1 | iex
 ```
 
-The source installer prints five clear stages: Rust check, source download, local optimized build, install, and the retained inspection path. It does not use Python, pip, pytest, GitHub Actions, or an automatic driver install. The release installer above remains the better choice when you want the fixed SHA-256-verified package instead.
+The source installer prints five clear stages: Rust check, source download, local optimized build, install, and virtual-Xbox verification. Compiler details and inspection files stay private on the machine instead of being streamed into the console. It does not use Python, pip, pytest, GitHub Actions, or an automatic driver install. The release installer above remains the better choice when you want the fixed SHA-256-verified package instead.
 
 ### 3. Launch the game with the bridge
 

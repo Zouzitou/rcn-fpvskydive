@@ -47,7 +47,7 @@ $sourceInstaller = [regex]::Replace($sourceInstaller, '(?m)^param\(\[string\]\$R
 Set-Content -LiteralPath 'install-from-source.ps1' -Value $sourceInstaller -NoNewline
 New-Item -ItemType Directory -Force -Path (Join-Path $payload 'bin') | Out-Null
 Copy-Item -LiteralPath $bridge -Destination (Join-Path $payload 'bin\rcn-bridge.exe') -Force
-$items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','verify-installed.ps1','install-app.ps1','install-from-source.ps1','startup.ps1','uninstall.ps1','driver.ps1','open-fpv.ps1','game-check.ps1','launch-fpv.ps1','launch-fpv.cmd','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+$items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','verify-installed.ps1','installer-ui.ps1','install-app.ps1','install-from-source.ps1','startup.ps1','uninstall.ps1','driver.ps1','open-fpv.ps1','game-check.ps1','launch-fpv.ps1','launch-fpv.cmd','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
 foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $payload -Recurse -Force }
 New-DeterministicZip -Source $payload -Destination $zip
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash

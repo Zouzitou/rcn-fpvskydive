@@ -2,15 +2,22 @@
 param(
   [Parameter(Mandatory = $true)][string]$SourceRoot,
   [Parameter(Mandatory = $true)][string]$BridgeSource,
-  [Parameter(Mandatory = $true)][string]$InstallMode
+  [Parameter(Mandatory = $true)][string]$InstallMode,
+  [switch]$SourceBuild
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+. (Join-Path $PSScriptRoot 'installer-ui.ps1')
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $Bin = Join-Path $Root 'bin'
 $Bridge = Join-Path $Bin 'rcn-bridge.exe'
-if (-not (Test-Path -LiteralPath $BridgeSource -PathType Leaf)) { throw "The native bridge executable was not found: $BridgeSource" }
+if (-not (Test-Path -LiteralPath $BridgeSource -PathType Leaf)) { throw 'The native bridge executable was not found in the installer package.' }
 
+if (-not $SourceBuild) {
+  Start-InstallerUi 'Private, per-user installer  •  no driver changes'
+  Set-InstallerStep 1 'Preparing a private application space' 'Keeping your existing mapping and settings.'
+}
 New-Item -ItemType Directory -Force -Path $Bin,(Join-Path $Root 'drivers'),(Join-Path $Root 'logs'),(Join-Path $Root 'state') | Out-Null
 $MappingConfig = Join-Path $Root 'state\mapping.conf'
 if (-not (Test-Path -LiteralPath $MappingConfig)) {
@@ -41,22 +48,27 @@ right_y.curve=1
 '@ | Set-Content -LiteralPath $MappingConfig -NoNewline
 }
 
-Write-Host "Installing $InstallMode build into $Root"
+if ($SourceBuild) { Set-InstallerStep 4 'Installing the locally built bridge' 'Keeping your existing mapping and settings.' }
+else { Set-InstallerStep 2 'Installing the native controller bridge' 'No Python runtime is required.' }
 Copy-Item -LiteralPath $BridgeSource -Destination $Bridge -Force
-foreach ($file in 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'verify-installed.ps1') {
+foreach ($file in 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'verify-installed.ps1', 'installer-ui.ps1') {
   Copy-Item -LiteralPath (Join-Path $SourceRoot $file) -Destination (Join-Path $Root $file) -Force
 }
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Installation did not produce rcn-bridge.exe.' }
 
 $SelfTest = @()
 $SelfTestPassed = $false
+if ($SourceBuild) { Set-InstallerStep 5 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
+else { Set-InstallerStep 3 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
 for ($attempt = 1; $attempt -le 5; $attempt++) {
   $SelfTest = & $Bridge self-test 2>&1
   if ($LASTEXITCODE -eq 0) { $SelfTestPassed = $true; break }
   if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
 }
 @{ state = 'installed'; runtime = 'native-rust'; install_mode = $InstallMode; gamepad_self_test = $SelfTestPassed; self_test_output = ($SelfTest -join "`n"); timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
+if (-not $SourceBuild) { Set-InstallerStep 4 'Setting up one-click launch' 'The bridge runs only while FPV SkyDive is open.' }
+$StartupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install 2>&1
+if ($LASTEXITCODE -ne 0) { throw 'Could not configure the game-only launcher.' }
 
 $StartMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
 $Shortcut = Join-Path $StartMenu 'RCN FPV SkyDive.lnk'
@@ -69,6 +81,7 @@ try {
   $Link.WorkingDirectory = $Root
   $Link.Description = 'Start FPV SkyDive with the RCN virtual Xbox controller'
   $Link.Save()
-} catch { Write-Warning "Could not create the optional Start-menu launcher: $($_.Exception.Message)" }
-if (-not $SelfTestPassed) { Write-Warning 'Native virtual-controller self-test failed. Check the ViGEmBus installation before controller use.' }
-Write-Host 'Installation finished. Use Start Menu > RCN FPV SkyDive to launch; the bridge never runs at Windows login.'
+} catch { Write-InstallerText '     Start Menu shortcut was unavailable; the Steam launch option still works.' 'Amber' }
+if (-not $SourceBuild) { Set-InstallerStep 5 'Finishing safely' 'No controller driver was installed or changed.' }
+if (-not $SelfTestPassed) { Write-InstallerText '     Virtual Xbox self-test needs attention. Check ViGEmBus before flying.' 'Amber' }
+Complete-InstallerUi 'Open Start Menu → RCN FPV SkyDive when you are ready to fly.'
