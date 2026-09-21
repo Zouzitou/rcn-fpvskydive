@@ -21,7 +21,7 @@ use windows::core::HSTRING;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | game-check | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -579,6 +579,21 @@ fn open_fpv() -> Result<(), BridgeError> {
     Ok(())
 }
 
+fn game_check() -> Result<(), BridgeError> {
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(app_root().join("game-check.ps1"))
+        .output()?;
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(&output.stderr)?;
+    if !output.status.success() {
+        return Err(BridgeError::Io(std::io::Error::other(
+            "FPV SkyDive session verification failed",
+        )));
+    }
+    Ok(())
+}
+
 fn port_from_args() -> Result<String, BridgeError> {
     let mut args = env::args().skip(1);
     let _command = args.next().ok_or(BridgeError::Usage)?;
@@ -935,6 +950,9 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "open-fpv" {
         return open_fpv();
+    }
+    if command == "game-check" {
+        return game_check();
     }
     if command == "self-test" {
         return self_test_gamepad();

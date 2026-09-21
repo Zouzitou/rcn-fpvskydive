@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.42/rcn-fpvskydive-v0.1.42.zip'
-$ExpectedSha256 = '2F395411ADA19ACEF1AFE9FE6FE641E9F3AAA4AE17D9A262290FFD3A64D7E4F9'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.43/rcn-fpvskydive-v0.1.43.zip'
+$ExpectedSha256 = '92A5AFA142373B352E621E94CA947FDFC0A22C4AD97C20126A8DE18F0366C278'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -52,6 +52,7 @@ Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup
 Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'driver.ps1') (Join-Path $Root 'driver.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'open-fpv.ps1') (Join-Path $Root 'open-fpv.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'game-check.ps1') (Join-Path $Root 'game-check.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.ps1') (Join-Path $Root 'launch-fpv.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.cmd') (Join-Path $Root 'launch-fpv.cmd')
 Copy-Item -Force (Join-Path $SourceRoot 'verify-installed.ps1') (Join-Path $Root 'verify-installed.ps1')
