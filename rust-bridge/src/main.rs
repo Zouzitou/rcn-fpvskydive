@@ -20,7 +20,7 @@ use windows::core::w;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | self-test | verify-input --port COM12 | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | self-test | verify-input --port COM12 | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -371,6 +371,22 @@ fn uninstall() -> Result<(), BridgeError> {
     Ok(())
 }
 
+fn open_fpv() -> Result<(), BridgeError> {
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(app_root().join("open-fpv.ps1"))
+        .args(["-Action", "open"])
+        .output()?;
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(&output.stderr)?;
+    if !output.status.success() {
+        return Err(BridgeError::Io(std::io::Error::other(
+            "FPV SkyDive was not found in the detected Steam libraries",
+        )));
+    }
+    Ok(())
+}
+
 fn port_from_args() -> Result<String, BridgeError> {
     let mut args = env::args().skip(1);
     let _command = args.next().ok_or(BridgeError::Usage)?;
@@ -648,6 +664,9 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "uninstall" {
         return uninstall();
+    }
+    if command == "open-fpv" {
+        return open_fpv();
     }
     if command == "self-test" {
         return self_test_gamepad();

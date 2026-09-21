@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.26/rcn-fpvskydive-v0.1.26.zip'
-$ExpectedSha256 = '015E1F676A14E2B93467C45DA9D5644DBD33BFD04F02B2D0784F6A85D1A5B6A9'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.27/rcn-fpvskydive-v0.1.27.zip'
+$ExpectedSha256 = '95C08F0FD26A9CE2915370308DE2F704E19BB63467A806BEF2AECA8241A8EB8B'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -51,6 +51,7 @@ Copy-Item -Force (Join-Path $SourceRoot 'bin\rcn-bridge.exe') $Bridge
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'driver.ps1') (Join-Path $Root 'driver.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'open-fpv.ps1') (Join-Path $Root 'open-fpv.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.ps1') (Join-Path $Root 'launch-fpv.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.cmd') (Join-Path $Root 'launch-fpv.cmd')
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Verified release payload did not contain rcn-bridge.exe.' }

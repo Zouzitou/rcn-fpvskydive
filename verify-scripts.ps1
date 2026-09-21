@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-$files = 'bootstrap.ps1', 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'launch-fpv.ps1', 'release.ps1', 'verify-release.ps1'
+$files = 'bootstrap.ps1', 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'launch-fpv.ps1', 'release.ps1', 'verify-release.ps1'
 $failed = $false
 foreach ($file in $files) {
   $tokens = $null
