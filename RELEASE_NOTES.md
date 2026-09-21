@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.57
+# RCN FPV SkyDive v0.1.58
 
 ## Highlights
 
@@ -7,6 +7,7 @@
 - The installer now configures FPV SkyDive’s normal Steam Play button to start the bridge automatically.
 - The README now uses shareable “latest installer” commands, so a command posted today installs the current release later too.
 - The project is now explicitly licensed under GNU AGPLv3.
+- Added a shared project instruction contract for Codex, Claude, and Gemini contributors.
 - The release-note template and mandatory release-note checks remain in place for every future release.
 
 ## Flight notes
