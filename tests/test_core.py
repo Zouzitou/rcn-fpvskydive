@@ -87,3 +87,9 @@ def test_diagnostic_redaction_preserves_json_structure():
     value = redact({"port": "COM12", "ready": True, "none": None, "items": [1, "C:\\Users\\alice\\x"]})
     assert value["port"] == "COM12" and value["ready"] is True and value["none"] is None
     assert value["items"] == [1, "C:\\Users\\<user>\\x"]
+
+def test_health_retains_gamepad_evidence_across_state_changes(tmp_path):
+    store = HealthStore(tmp_path)
+    store.write("gamepad_ready", virtual_gamepad_test="passed")
+    store.write("waiting_for_controller")
+    assert report(tmp_path)["health"]["virtual_gamepad_test"] == "passed"

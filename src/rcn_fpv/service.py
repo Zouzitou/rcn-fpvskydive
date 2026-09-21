@@ -12,6 +12,7 @@ def run(root, interval=0.02):
     if not result.passed:
         HealthStore(root).write("failed", virtual_gamepad_test=result.message)
         raise RuntimeError(result.message)
+    HealthStore(root).write("gamepad_ready", virtual_gamepad_test=result.message)
     backend.create()
     output = XboxOutput(backend)
     bridge = Bridge(root, lambda: choose_candidate(enumerate_protocol_ports()), SerialTransport, output, HealthStore(root), axis_configs(load_config(root)))

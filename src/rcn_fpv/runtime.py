@@ -40,6 +40,13 @@ class HealthStore:
     def __init__(self, root: Path): self.root = root; self.path = root / "state" / "health.json"
     def write(self, state, **details):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"state": state, "pid": os.getpid(), "timestamp": time.time(), **details}
+        retained = {}
+        try:
+            previous = json.loads(self.path.read_text(encoding="utf-8"))
+            if isinstance(previous, dict) and "virtual_gamepad_test" in previous:
+                retained["virtual_gamepad_test"] = previous["virtual_gamepad_test"]
+        except (OSError, ValueError):
+            pass
+        payload = {**retained, "state": state, "pid": os.getpid(), "timestamp": time.time(), **details}
         self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return payload
