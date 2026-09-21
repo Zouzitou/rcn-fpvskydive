@@ -69,6 +69,8 @@ The bridge records a separate 10-second live-frame stability gate after all four
 
 `rcn-fpv status` is deliberately conservative: it says `ready: true` only when the managed virtual Xbox self-test, Protocol port, live-axis verification, stability interval, and current bridge process are all present.
 
+The most recently selected controller identity is retained at `%LOCALAPPDATA%\RCN-FPVSkyDive\state\device.json`, so a later reconnect can be diagnosed even when Windows assigns a different COM number.
+
 ## Security
 
 Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.

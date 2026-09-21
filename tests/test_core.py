@@ -1,4 +1,4 @@
-from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb, parse_pnp_serial_records
+from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb, parse_pnp_serial_records, persist_device_record
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16, build_read_sticks, parse_duml
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
@@ -25,6 +25,11 @@ def test_unconfirmed_dji_protocol_candidate_can_only_proceed_to_live_verificatio
 def test_pnp_serial_records_preserve_the_real_usb_instance_id():
     records = parse_pnp_serial_records('[{"DeviceID":"COM12","Name":"DJI USB VCOM For Protocol (COM12)","PNPDeviceID":"USB\\\\VID_2CA3&PID_1020&MI_02\\\\abc","Status":"OK"}]')
     assert records["COM12"]["instance_id"].endswith("abc")
+
+def test_device_detection_is_persisted_for_reconnect_diagnostics(tmp_path):
+    candidate = PortCandidate("COM12", "DJI USB VCOM For Protocol", "2CA3", "1020", "MI_02", "USB\\instance")
+    persist_device_record(tmp_path, candidate, "RC-N1")
+    assert report(tmp_path)["device_detection"]["protocol_port"] == "COM12"
 
 def test_bad_checksum_rejected():
     b = bytearray(encode(b"abc")); b[-1] ^= 1

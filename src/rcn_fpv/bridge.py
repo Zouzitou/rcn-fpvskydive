@@ -6,6 +6,7 @@ from .runtime import ProcessLock, SingletonError
 from .logging import JsonlLogger
 from .protocol import parse_rcn1_sticks, build_enable_simulator, build_read_sticks
 from .mapping import map_sticks
+from .discovery import persist_device_record
 
 class Bridge:
     def __init__(self, root, discovery, transport_factory, output, health, axis_configs=None, transmitter_mode="mode2"):
@@ -37,6 +38,7 @@ class Bridge:
                 self.last_wait_logged_at = now
             return False
         classification = candidate.proven_model or "RC-N family unconfirmed"
+        persist_device_record(self.root, candidate, classification)
         self.lifecycle.candidate_found(protocol_port=candidate.device, usb_instance_id=candidate.instance_id,
                                        controller_model=classification)
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id,

@@ -55,6 +55,12 @@ def report(root: Path, extra=None):
             }
         except (OSError, ValueError):
             data["health"] = {"error": "unreadable health file"}
+    device = root / "state" / "device.json"
+    if device.exists():
+        try:
+            data["device_detection"] = redact(json.loads(device.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            data["device_detection"] = {"error": "unreadable device record"}
     data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]
     evidence = discover_driver_evidence()
     if evidence:

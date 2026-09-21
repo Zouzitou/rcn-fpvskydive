@@ -3,6 +3,8 @@ from typing import Iterable, Optional
 import json
 import re
 import subprocess
+import time
+from pathlib import Path
 
 SUPPORTED = {"RC-N1": {("2CA3", "1020")}}
 DJI_VENDOR_ID = "2CA3"
@@ -74,6 +76,15 @@ def pnp_serial_records():
         return parse_pnp_serial_records(result.stdout) if result.returncode == 0 else {}
     except OSError:
         return {}
+
+def persist_device_record(root: Path, candidate: PortCandidate, model: str):
+    path = Path(root) / "state" / "device.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = {"timestamp": time.time(), "controller_model": model, "protocol_port": candidate.device,
+              "description": candidate.description, "vid": candidate.vid, "pid": candidate.pid,
+              "interface": candidate.interface, "usb_instance_id": candidate.instance_id}
+    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    return record
 
 def enumerate_protocol_ports():
     """Return pyserial ports enriched with USB/interface metadata when available."""
