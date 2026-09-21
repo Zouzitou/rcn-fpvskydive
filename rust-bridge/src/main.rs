@@ -13,17 +13,22 @@ use std::{
 };
 use thiserror::Error;
 use vigem_rust::{Client, ClientError, X360Report};
+use windows::Win32::Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HANDLE};
+use windows::Win32::System::Threading::CreateMutexW;
+use windows::core::w;
 
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose | start | stop | repair | uninstall | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
     NoProtocolPort,
     #[error("no checksum-validated live stick frames were received")]
     NoLiveFrames,
+    #[error("the RCN bridge is already running")]
+    AlreadyRunning,
     #[error("serial error: {0}")]
     Serial(#[from] serialport::Error),
     #[error("I/O error: {0}")]
@@ -39,6 +44,28 @@ fn status_path() -> PathBuf {
     root.join("RCN-FPVSkyDive")
         .join("state")
         .join("bridge.json")
+}
+
+fn app_root() -> PathBuf {
+    env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("RCN-FPVSkyDive")
+}
+
+fn log_line(message: &str) {
+    let path = app_root().join("logs").join("bridge.log");
+    let Some(parent) = path.parent() else { return };
+    if fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|time| time.as_secs())
+        .unwrap_or(0);
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(file, "{now} {message}");
+    }
 }
 
 fn escape_json(value: &str) -> String {
@@ -70,12 +97,124 @@ fn publish_status(state: &str, port: Option<&str>, mapped_frames: usize, detail:
         timestamp
     );
     let _ = fs::write(path, json);
+    log_line(&format!("state={state} mapped_frames={mapped_frames}"));
 }
 
 fn print_status() {
     let status = fs::read_to_string(status_path())
         .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
     println!("{status}");
+}
+
+fn run_powershell(script: &str) -> Result<std::process::Output, BridgeError> {
+    Ok(Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .output()?)
+}
+
+struct WatchMutex(HANDLE);
+
+impl Drop for WatchMutex {
+    fn drop(&mut self) {
+        let _ = unsafe { CloseHandle(self.0) };
+    }
+}
+
+fn acquire_watch_mutex() -> Result<WatchMutex, BridgeError> {
+    let handle = unsafe { CreateMutexW(None, true, w!("Global\\RCN-FPVSkyDive-Bridge")) }
+        .map_err(|error| BridgeError::Io(std::io::Error::other(error.to_string())))?;
+    if unsafe { GetLastError() }.0 == ERROR_ALREADY_EXISTS.0 {
+        drop(WatchMutex(handle));
+        return Err(BridgeError::AlreadyRunning);
+    }
+    Ok(WatchMutex(handle))
+}
+
+fn diagnose() -> Result<(), BridgeError> {
+    let status = fs::read_to_string(status_path())
+        .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
+    let output = run_powershell(
+        "Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPDeviceID -match 'VID_2CA3' -or $_.Name -match 'DJI USB' } | ForEach-Object { \"$($_.Status)|$($_.Name)|$($_.PNPDeviceID)\" }",
+    )?;
+    println!("status: {status}");
+    println!("runtime: native-rust");
+    println!("interfaces:");
+    let interfaces = String::from_utf8_lossy(&output.stdout);
+    if interfaces.trim().is_empty() {
+        println!("  none");
+    } else {
+        for line in interfaces.lines() {
+            println!("  {line}");
+        }
+    }
+    println!(
+        "log: {}",
+        app_root().join("logs").join("bridge.log").display()
+    );
+    Ok(())
+}
+
+fn start_watch() -> Result<(), BridgeError> {
+    let executable = env::current_exe()?;
+    let mut child = Command::new(executable).arg("watch").spawn()?;
+    thread::sleep(Duration::from_millis(250));
+    if let Some(status) = child.try_wait()? {
+        if !status.success() {
+            return Err(BridgeError::AlreadyRunning);
+        }
+    }
+    println!("{{\"started\":true,\"pid\":{}}}", child.id());
+    Ok(())
+}
+
+fn stop_watch() -> Result<(), BridgeError> {
+    let path = env::current_exe()?
+        .display()
+        .to_string()
+        .replace('\'', "''");
+    let script = format!(
+        "Get-CimInstance Win32_Process -Filter \"Name = 'rcn-bridge.exe'\" | Where-Object {{ $_.ExecutablePath -eq '{path}' -and $_.CommandLine -like '* watch*' }} | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}"
+    );
+    let output = run_powershell(&script)?;
+    if !output.status.success() {
+        return Err(BridgeError::Io(std::io::Error::other(
+            String::from_utf8_lossy(&output.stderr).trim(),
+        )));
+    }
+    publish_status("stopped", None, 0, Some("manual stop"));
+    println!("{{\"stopped\":true}}");
+    Ok(())
+}
+
+fn repair() -> Result<(), BridgeError> {
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(app_root().join("startup.ps1"))
+        .args(["-Action", "install"])
+        .output()?;
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(&output.stderr)?;
+    if !output.status.success() {
+        return Err(BridgeError::Io(std::io::Error::other(
+            "repair script failed",
+        )));
+    }
+    Ok(())
+}
+
+fn uninstall() -> Result<(), BridgeError> {
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(app_root().join("uninstall.ps1"))
+        .output()?;
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(&output.stderr)?;
+    if !output.status.success() {
+        return Err(BridgeError::Io(std::io::Error::other(
+            "uninstall script failed",
+        )));
+    }
+    Ok(())
 }
 
 fn port_from_args() -> Result<String, BridgeError> {
@@ -195,6 +334,19 @@ fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeErr
 }
 
 fn watch() -> Result<(), BridgeError> {
+    let _watch_mutex = match acquire_watch_mutex() {
+        Ok(mutex) => mutex,
+        Err(BridgeError::AlreadyRunning) => {
+            publish_status(
+                "already_running",
+                None,
+                0,
+                Some("duplicate watcher prevented"),
+            );
+            return Err(BridgeError::AlreadyRunning);
+        }
+        Err(error) => return Err(error),
+    };
     loop {
         match discover_protocol_port() {
             Some(port) => {
@@ -219,6 +371,21 @@ fn main() -> Result<(), BridgeError> {
     if command == "status" {
         print_status();
         return Ok(());
+    }
+    if command == "diagnose" {
+        return diagnose();
+    }
+    if command == "start" {
+        return start_watch();
+    }
+    if command == "stop" {
+        return stop_watch();
+    }
+    if command == "repair" {
+        return repair();
+    }
+    if command == "uninstall" {
+        return uninstall();
     }
     if command == "self-test" {
         return self_test_gamepad();
