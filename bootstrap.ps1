@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.18/rcn-fpvskydive-v0.1.18.zip'
-$ExpectedSha256 = 'E0C3EB6A77028409ED11E454AB677CF1E933BB648E55E2C2A79D0543DAF07303'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.19/rcn-fpvskydive-v0.1.19.zip'
+$ExpectedSha256 = 'F8122C023E5AB8811E1D6299951F5880663ADD0CC061AC1813F03D0A2B9C6CE8'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -22,10 +22,12 @@ Write-Host "RCN FPV SkyDive installer: preparing per-user environment at $Root"
 Copy-Item -Force (Join-Path $SourceRoot 'bin\rcn-bridge.exe') $Bridge
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.ps1') (Join-Path $Root 'launch-fpv.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.cmd') (Join-Path $Root 'launch-fpv.cmd')
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Verified release payload did not contain rcn-bridge.exe.' }
 $SelfTest = & $Bridge self-test 2>&1
 $SelfTestPassed = $LASTEXITCODE -eq 0
 @{ state='installed'; runtime='native-rust'; gamepad_self_test=$SelfTestPassed; self_test_output=($SelfTest -join "`n"); timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
 if (-not $SelfTestPassed) { Write-Warning 'Native virtual-controller self-test failed. Check the ViGEmBus installation before controller use.' }
-Write-Host 'Native environment prepared. Hardware/driver validation remains required before READY.'
+Write-Host 'Native environment prepared. Configure the Steam launch option before playing; the bridge does not run at Windows login.'

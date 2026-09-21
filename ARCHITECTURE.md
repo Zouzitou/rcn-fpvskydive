@@ -10,8 +10,8 @@ The product is a per-user Windows application installed below `%LOCALAPPDATA%\\R
 bootstrap.ps1
   -> release-pinned artifact + SHA-256 verification
   -> bin/rcn-bridge.exe (native Rust runtime)
-  -> startup.ps1 (per-user login registration)
-  -> rcn-bridge watch (long-lived process)
+  -> launch-fpv.cmd (Steam launch wrapper)
+  -> rcn-bridge watch (only while FPV SkyDive runs)
        discovery -> transport -> protocol -> mapping -> gamepad
               \________________ lifecycle / diagnostics ________________/
 ```
@@ -21,7 +21,7 @@ bootstrap.ps1
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with all buttons left clear.
 - `gamepad`: native ViGEm adapter with neutral-on-start, neutral-on-smoke-test exit, and target removal when a session ends.
-- `lifecycle`: a per-user scheduled-task/Startup-folder launcher starts `watch`, which rediscovers after serial failure or unplug/replug.
+- `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, and stops it when the game process exits.
 
 ## Data flow
 
@@ -34,15 +34,15 @@ bootstrap.ps1
 ## Installer state machine
 
 ```text
-DISCOVER -> PLAN -> FETCH_VERIFIED -> PREPARE_ENV -> DRIVER_GATE
-    -> RESCAN -> GAMEPAD_SELF_TEST -> STARTUP_REGISTER -> STARTUP_TEST
-    -> HARDWARE_GUIDE -> STABILITY_CHECK -> READY
+DISCOVER -> PLAN -> FETCH_VERIFIED -> PREPARE_ENV -> GAMEPAD_SELF_TEST
+    -> INSTALL_STEAM_LAUNCH_WRAPPER -> GAME_LAUNCH -> BRIDGE_RUNNING
+    -> GAME_EXIT -> BRIDGE_STOPPED
 
 Any state -> REPAIRABLE_FAILURE -> DIAGNOSE
 READY -> UNINSTALL -> REMOVED
 ```
 
-The installer is idempotent. Elevation is requested only for driver-store operations or machine-level actions, with an explanation. Each transition records a state file and can resume or repair without duplicating processes or startup entries. `READY` is withheld unless virtual gamepad self-test, Protocol-port selection, live-stick verification, short stability, and startup test all pass.
+The installer is idempotent and has no login-start component. Steam starts the bridge only for FPV SkyDive, and the wrapper terminates that bridge on game exit. The virtual controller remains absent outside that session.
 
 ## Acceptance tests
 

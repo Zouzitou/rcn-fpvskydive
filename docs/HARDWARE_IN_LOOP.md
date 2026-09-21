@@ -13,12 +13,12 @@ An initial RC-N1 native serial capture and native virtual-controller smoke test 
 | Missing VCOM driver | [ ] | [ ] | [ ] | Verified driver flow or actionable failure |
 | DJI Assistant 2 open | [ ] | [ ] | [ ] | Busy/interference diagnosis and safe retry |
 | Protocol + Debug interfaces | [ ] | [ ] | [ ] | Protocol selected; Debug rejected |
-| Plug after bridge startup | [ ] | [ ] | [ ] | Waiting → connected after live verification |
+| Plug after game bridge starts | [ ] | [ ] | [ ] | Waiting → connected after live verification |
 | Unplug/replug and COM renumber | [ ] | [ ] | [ ] | Re-resolve instance ID and reconnect |
 | Sleep/resume | [ ] | [ ] | [ ] | Neutral during gap, reconnect after resume |
 | Four-axis live verification | [ ] | [ ] | [ ] | All axes change plausibly |
 | FPV SkyDive calibration | [ ] | [ ] | [ ] | Mapping confirmed; Arm/Pause untouched |
-| Login/reboot startup | [ ] | [ ] | [ ] | Exactly one bridge process and health update |
+| Steam game launch/exit | [ ] | [ ] | [ ] | Exactly one bridge while playing; none after game exit |
 | Repair and uninstall | [ ] | [ ] | [ ] | Idempotent repair; reversible removal |
 
 RC-N2 and RC-N3 remain `RC-N family unconfirmed` unless their Protocol interface passes checksum validation and the four-axis live-stick test. A USB name, PID, or successful serial open alone is never compatibility evidence.

@@ -1,6 +1,12 @@
 # FPV SkyDive integration
 
-The bridge searches Steam library roots and app manifests; it does not assume `C:` or modify registry data. If the game is found, the user flow is:
+The bridge is launched by Steam only for FPV SkyDive. In the game's Steam **Properties → General → Launch Options**, add:
+
+```text
+cmd.exe /d /c ""%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%"
+```
+
+Steam supplies `%command%` as the normal game executable and arguments. The wrapper starts the native bridge, waits for that game process to exit, and stops the same bridge process. The user flow is:
 
 1. Confirm the virtual Xbox controller is present.
 2. Open FPV SkyDive’s controller calibration screen.

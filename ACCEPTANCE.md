@@ -7,8 +7,8 @@
 | Driver | Matching signed Ports driver and post-install rescan | diagnostic report |
 | Device | Protocol interface selected, Debug rejected | discovery tests + report |
 | Gamepad | Virtual Xbox self-test passes and cleans up | self-test result |
-| Bridge | Neutral startup, live verification, reconnect, singleton | integration tests + JSONL log |
-| Startup | Task/Startup fallback tested immediately | startup test result |
-| SkyDive | Installation detection and guided calibration | manual HIL checklist |
-| Safety | No false READY state; redacted diagnostics | state-machine tests |
+| Bridge | Neutral startup, validated frames, reconnect, clean teardown | native integration result + `bridge.json` |
+| Steam launch | No login watcher; one bridge for FPV SkyDive only | wrapper start/exit test |
+| SkyDive | Steam wrapper and normal controller calibration | manual HIL checklist |
+| Safety | Unsupported PID rejected; no controller outside game session | native status and lifecycle tests |
 | Release | Reproducible artifact, hash, uninstall, README | release checklist |
