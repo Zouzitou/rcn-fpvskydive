@@ -1,4 +1,4 @@
-from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb
+from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb, parse_pnp_serial_records
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16, build_read_sticks, parse_duml
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
@@ -21,6 +21,10 @@ def test_model_classification_does_not_overclaim():
 def test_unconfirmed_dji_protocol_candidate_can_only_proceed_to_live_verification():
     candidate = PortCandidate("COM9", "DJI USB VCOM For Protocol", "2CA3", "1021", "MI_02")
     assert choose_candidate([candidate]) == candidate and candidate.proven_model is None
+
+def test_pnp_serial_records_preserve_the_real_usb_instance_id():
+    records = parse_pnp_serial_records('[{"DeviceID":"COM12","Name":"DJI USB VCOM For Protocol (COM12)","PNPDeviceID":"USB\\\\VID_2CA3&PID_1020&MI_02\\\\abc","Status":"OK"}]')
+    assert records["COM12"]["instance_id"].endswith("abc")
 
 def test_bad_checksum_rejected():
     b = bytearray(encode(b"abc")); b[-1] ^= 1
