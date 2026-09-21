@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Ref = 'v0.1.48')
+param([string]$Ref = 'v0.1.49')
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -14,7 +14,15 @@ $BuildLog = Join-Path $BuildRoot 'build.log'
 
 $InstallerUseAnsi = $false
 try { $InstallerUseAnsi = [bool]$Host.UI.SupportsVirtualTerminal } catch { }
-function Write-SourceUi { param([string]$Text, [string]$Tone = 'Orange'); $code = if ($Tone -eq 'Green') { '38;5;114' } elseif ($Tone -eq 'Red') { '38;5;203' } elseif ($Tone -eq 'Dim') { '38;5;245' } else { '38;5;208' }; if ($InstallerUseAnsi) { Write-Host ("`e[{0}m{1}`e[0m" -f $code, $Text) } else { Write-Host $Text -ForegroundColor (if ($Tone -eq 'Green') { 'Green' } elseif ($Tone -eq 'Red') { 'Red' } elseif ($Tone -eq 'Dim') { 'DarkGray' } else { 'DarkYellow' }) } }
+function Write-SourceUi {
+  param([string]$Text, [string]$Tone = 'Orange')
+  $code = if ($Tone -eq 'Green') { '38;5;114' } elseif ($Tone -eq 'Red') { '38;5;203' } elseif ($Tone -eq 'Dim') { '38;5;245' } else { '38;5;208' }
+  if ($InstallerUseAnsi) { Write-Host ("`e[{0}m{1}`e[0m" -f $code, $Text) }
+  else {
+    $fallback = if ($Tone -eq 'Green') { 'Green' } elseif ($Tone -eq 'Red') { 'Red' } elseif ($Tone -eq 'Dim') { 'DarkGray' } else { 'DarkYellow' }
+    Write-Host $Text -ForegroundColor $fallback
+  }
+}
 function Show-Step { param([int]$Number, [string]$Message, [string]$Detail); Write-Progress -Activity 'RCN FPV SkyDive source installer' -Status $Message -PercentComplete ($Number * 20); Write-SourceUi ("  [{0}/5]  {1}" -f $Number, $Message); if ($Detail) { Write-SourceUi ("         {0}" -f $Detail) 'Dim' } }
 try { Clear-Host } catch { }
 Write-SourceUi '╔══════════════════════════════════════════════════════╗'
