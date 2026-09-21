@@ -172,6 +172,28 @@ fn json_number_field(contents: &str, field: &str) -> Option<u64> {
     contents[start..end].parse().ok()
 }
 
+fn diagnostic_category(
+    interfaces: &str,
+    protocol_port: Option<&str>,
+    live_frames: &Result<Option<usize>, BridgeError>,
+) -> &'static str {
+    if protocol_port.is_none() {
+        if interfaces.contains("For Debug") {
+            "debug_only_close_assistant_and_reconnect"
+        } else if interfaces.contains("VID_2CA3") {
+            "device_seen_without_protocol_interface_check_vcom_driver_or_cable"
+        } else {
+            "controller_not_detected_check_power_data_cable_and_usb_port"
+        }
+    } else {
+        match live_frames {
+            Ok(Some(count)) if *count > 0 => "protocol_live_input_present_run_verify_input",
+            Ok(_) => "protocol_interface_present_without_live_frames",
+            Err(_) => "protocol_port_open_failed_check_busy_process_or_assistant",
+        }
+    }
+}
+
 fn current_device_instance_id() -> Option<String> {
     let contents = fs::read_to_string(device_state_path()).ok()?;
     json_string_field(&contents, "instance_id")
@@ -336,6 +358,7 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
     } else {
         interfaces
     };
+    let category = diagnostic_category(&interfaces, protocol_port.as_deref(), &live_frames);
     if interfaces.trim().is_empty() {
         println!("  none");
     } else {
@@ -361,6 +384,7 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
         "protocol port: {}",
         protocol_port.as_deref().unwrap_or("none")
     );
+    println!("failure category: {category}");
     let live_frame_text = match live_frames {
         Ok(Some(count)) => count.to_string(),
         Ok(None) => "not attempted".to_string(),
@@ -867,7 +891,7 @@ fn main() -> Result<(), BridgeError> {
 
 #[cfg(test)]
 mod status_tests {
-    use super::{BridgeError, acquire_watch_mutex, escape_json, redact_text};
+    use super::{BridgeError, acquire_watch_mutex, diagnostic_category, escape_json, redact_text};
 
     #[test]
     fn escapes_status_text_for_json() {
@@ -891,5 +915,19 @@ mod status_tests {
         };
         let value = format!("{}\\RCN-FPVSkyDive", local_app_data.to_string_lossy());
         assert_eq!(redact_text(&value), "%LOCALAPPDATA%\\RCN-FPVSkyDive");
+    }
+
+    #[test]
+    fn classifies_debug_only_and_live_protocol_states() {
+        let no_live = Ok(Some(0));
+        assert_eq!(
+            diagnostic_category("OK|For Debug|VID_2CA3", None, &no_live),
+            "debug_only_close_assistant_and_reconnect"
+        );
+        let live = Ok(Some(3));
+        assert_eq!(
+            diagnostic_category("OK|For Protocol|VID_2CA3", Some("COM12"), &live),
+            "protocol_live_input_present_run_verify_input"
+        );
     }
 }
