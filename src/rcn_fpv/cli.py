@@ -2,6 +2,7 @@ import argparse, json, os, subprocess, sys
 from pathlib import Path
 from . import __version__
 from .diagnostics import report
+from .driver import DriverInstallError, install_managed_driver
 from .discovery import choose_candidate, enumerate_protocol_ports
 from .config import AXIS_NAMES, load_config, save_config
 
@@ -9,7 +10,8 @@ ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rcn-fpv", description="DJI RC-N bridge for FPV SkyDive")
-    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config"])
+    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config", "driver-install"])
+    p.add_argument("--inf", type=Path, help="Official DJI INF placed under the managed drivers folder")
     p.add_argument("--mode", choices=["mode1", "mode2"])
     p.add_argument("--axis", choices=AXIS_NAMES)
     p.add_argument("--invert", choices=["on", "off"])
@@ -48,6 +50,14 @@ def main(argv=None):
                     changed = True
         if changed: save_config(ROOT, config)
         print(json.dumps(config, indent=2))
+        return 0
+    if args.command == "driver-install":
+        try:
+            evidence = install_managed_driver(ROOT, args.inf)
+        except DriverInstallError as exc:
+            print(f"driver installation failed safely: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({"provider": evidence.provider, "version": evidence.version, "status": "verified installed"}))
         return 0
     if args.command == "start":
         try:

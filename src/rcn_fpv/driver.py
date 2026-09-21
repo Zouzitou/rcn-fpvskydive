@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import Iterable
+from pathlib import Path
 import json, re, subprocess
+
+class DriverInstallError(RuntimeError): pass
 
 @dataclass(frozen=True)
 class DriverEvidence:
@@ -15,6 +17,7 @@ def validate_driver(evidence: DriverEvidence, required_vid="2CA3", required_pid=
     ids = {x.upper().replace("&", "") for x in evidence.hardware_ids}
     target = f"USBVID_{required_vid.upper()}PID_{required_pid.upper()}"
     reasons = []
+    if "dji" not in evidence.provider.casefold(): reasons.append("driver provider is not DJI")
     if not evidence.signed: reasons.append("driver is not signature-validated")
     if not evidence.ports_class: reasons.append("driver is not a Ports-class driver")
     if not any(required_vid.upper() in item and required_pid.upper() in item for item in ids):
@@ -23,6 +26,34 @@ def validate_driver(evidence: DriverEvidence, required_vid="2CA3", required_pid=
 
 def pnputil_command(inf_path):
     return ["pnputil.exe", "/add-driver", str(inf_path), "/install"]
+
+def managed_inf(root: Path, inf_path):
+    """Accept an INF only from the per-user managed driver payload directory."""
+    if inf_path is None:
+        raise DriverInstallError("driver INF must be supplied with --inf")
+    driver_root = (Path(root) / "drivers").resolve()
+    candidate = Path(inf_path).expanduser().resolve()
+    if candidate.suffix.lower() != ".inf" or not candidate.is_file() or not candidate.is_relative_to(driver_root):
+        raise DriverInstallError("driver INF must be an existing .inf file inside the managed drivers folder")
+    return candidate
+
+def driver_install_command(inf_path):
+    """Return the UAC-elevated, wait-for-completion PowerShell invocation."""
+    escaped = str(inf_path).replace("'", "''")
+    script = "$p=Start-Process -FilePath 'pnputil.exe' -ArgumentList @('/add-driver','%s','/install') -Wait -PassThru -Verb RunAs; exit $p.ExitCode" % escaped
+    return ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script]
+
+def install_managed_driver(root: Path, inf_path, runner=subprocess.run):
+    """Install a deliberately supplied DJI package, then prove the active driver passes validation."""
+    inf = managed_inf(root, inf_path)
+    result = runner(driver_install_command(inf), check=False)
+    if result.returncode:
+        raise DriverInstallError("driver installation was cancelled or pnputil failed")
+    evidence = discover_driver_evidence()
+    valid, reasons = validate_driver(evidence) if evidence else (False, ["no installed DJI Ports driver was found after installation"])
+    if not valid:
+        raise DriverInstallError("installed driver did not pass verification: " + "; ".join(reasons))
+    return evidence
 
 def parse_driver_output(text: str):
     """Parse localized-ish pnputil output conservatively; unknown fields stay empty."""

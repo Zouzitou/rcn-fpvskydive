@@ -1,5 +1,5 @@
 from rcn_fpv import driver
-from rcn_fpv.driver import DriverEvidence, pnputil_command, validate_driver, parse_driver_output
+from rcn_fpv.driver import DriverEvidence, DriverInstallError, driver_install_command, managed_inf, pnputil_command, validate_driver, parse_driver_output
 from rcn_fpv.startup import choose_startup_method
 from rcn_fpv.lifecycle import BridgeState, Lifecycle
 from rcn_fpv.runtime import HealthStore
@@ -12,8 +12,21 @@ def test_driver_validation_fails_closed():
     ok, reasons = validate_driver(DriverEvidence("DJI", "1", False, ("USB\\VID_2CA3&PID_1020",), True))
     assert not ok and "signature" in reasons[0]
 
+def test_driver_validation_requires_dji_provider():
+    ok, reasons = validate_driver(DriverEvidence("Other", "1", True, ("USB\\VID_2CA3&PID_1020",), True))
+    assert not ok and "provider" in reasons[0]
+
 def test_driver_command_is_explicit():
     assert pnputil_command("dji_vcom_driver11.inf") == ["pnputil.exe", "/add-driver", "dji_vcom_driver11.inf", "/install"]
+
+def test_driver_install_command_requests_elevation():
+    assert "-Verb RunAs" in driver_install_command("C:/drivers/dji.inf")[-1]
+
+def test_managed_inf_rejects_outside_payload(tmp_path):
+    inf = tmp_path / "other.inf"; inf.write_text("", encoding="utf-8")
+    try: managed_inf(tmp_path, inf)
+    except DriverInstallError: pass
+    else: assert False, "driver payload must stay in its managed folder"
 
 def test_driver_output_parser_is_conservative():
     evidence = parse_driver_output("Provider Name: DJI\nDriver Version: 1.2\nClass Name: Ports\nDigitally Signed: Yes\nUSB\\VID_2CA3&PID_1020")

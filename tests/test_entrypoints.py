@@ -37,3 +37,8 @@ def test_uninstall_schedules_managed_uninstaller(tmp_path, monkeypatch, capsys):
     assert cli.main(["uninstall"]) == 0
     assert calls and calls[0][0] == "powershell.exe"
     assert "uninstall scheduled" in capsys.readouterr().out
+
+def test_driver_install_requires_a_managed_inf(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    assert cli.main(["driver-install"]) == 2
+    assert "managed drivers folder" in capsys.readouterr().err
