@@ -14,4 +14,5 @@ try {
   exit $GameProcess.ExitCode
 } finally {
   Stop-Process -Id $BridgeProcess.Id -Force -ErrorAction SilentlyContinue
+  @{ state='stopped'; detail='FPV SkyDive exited'; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\bridge.json')
 }
