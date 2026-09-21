@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.38/rcn-fpvskydive-v0.1.38.zip'
-$ExpectedSha256 = 'D01CDB908EBB8E56E2F5812937FEBD4AD48D2F927E4B2C2EE59740DFAEB86B26'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.39/rcn-fpvskydive-v0.1.39.zip'
+$ExpectedSha256 = 'D428CB0545477C0B7B91287A0A6E2DEFC2D2751C9AC9B84E480622AEF7ACE628'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -56,8 +56,13 @@ Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.ps1') (Join-Path $Root 'laun
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.cmd') (Join-Path $Root 'launch-fpv.cmd')
 Copy-Item -Force (Join-Path $SourceRoot 'verify-installed.ps1') (Join-Path $Root 'verify-installed.ps1')
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Verified release payload did not contain rcn-bridge.exe.' }
-$SelfTest = & $Bridge self-test 2>&1
-$SelfTestPassed = $LASTEXITCODE -eq 0
+$SelfTest = @()
+$SelfTestPassed = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+  $SelfTest = & $Bridge self-test 2>&1
+  if ($LASTEXITCODE -eq 0) { $SelfTestPassed = $true; break }
+  if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
+}
 @{ state='installed'; runtime='native-rust'; gamepad_self_test=$SelfTestPassed; self_test_output=($SelfTest -join "`n"); timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
 if (-not $SelfTestPassed) { Write-Warning 'Native virtual-controller self-test failed. Check the ViGEmBus installation before controller use.' }
