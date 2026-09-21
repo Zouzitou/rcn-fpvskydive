@@ -39,11 +39,11 @@ DISCOVER -> PLAN -> FETCH_VERIFIED -> PREPARE_ENV -> GAMEPAD_SELF_TEST
     -> INSTALL_STEAM_LAUNCH_WRAPPER -> GAME_LAUNCH -> BRIDGE_RUNNING
     -> GAME_EXIT -> BRIDGE_STOPPED
 
-Any state -> REPAIRABLE_FAILURE -> DIAGNOSE
+Any state -> REPAIRABLE_FAILURE -> VERIFIED_REPAIR_REINSTALL -> DIAGNOSE
 READY -> UNINSTALL -> REMOVED
 ```
 
-The installer is idempotent and has no login-start component. Steam starts the bridge only for FPV SkyDive, and the wrapper terminates that bridge on game exit. The virtual controller remains absent outside that session.
+The installer is idempotent and has no login-start component. Steam starts the bridge only for FPV SkyDive, and the wrapper terminates that bridge on game exit. The virtual controller remains absent outside that session. The native `repair` command invokes the installed hash-verifying bootstrapper in repair mode, which fetches and reinstalls its pinned release payload rather than merely rewriting startup state.
 
 ## Acceptance tests
 

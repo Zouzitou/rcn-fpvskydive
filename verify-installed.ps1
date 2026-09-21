@@ -4,9 +4,13 @@ $ErrorActionPreference = 'Stop'
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $Bridge = Join-Path $Root 'bin\rcn-bridge.exe'
 $Wrapper = Join-Path $Root 'launch-fpv.ps1'
+$Bootstrap = Join-Path $Root 'bootstrap.ps1'
+$Installer = Join-Path $Root 'install-app.ps1'
 $Shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\RCN FPV SkyDive.lnk'
 if (-not (Test-Path -LiteralPath $Bridge)) { throw "Installed bridge is missing: $Bridge" }
 if (-not (Test-Path -LiteralPath $Wrapper)) { throw "Installed wrapper is missing: $Wrapper" }
+if (-not (Test-Path -LiteralPath $Bootstrap)) { throw "Installed repair bootstrap is missing: $Bootstrap" }
+if (-not (Test-Path -LiteralPath $Installer)) { throw "Installed repair installer is missing: $Installer" }
 if (-not (Test-Path -LiteralPath $Shortcut)) { throw "Installed Start-menu launcher is missing: $Shortcut" }
 $SteamOptions = Join-Path $Root 'steam-launch-options.ps1'
 if (-not (Test-Path -LiteralPath $SteamOptions)) { throw "Installed Steam Play setup helper is missing: $SteamOptions" }
@@ -47,6 +51,7 @@ if ($watchers.Count -ne 0) { throw "Wrapper left $($watchers.Count) bridge watch
   self_test = 'passed'
   startup_mode = $startup.method
   start_menu_launcher = $true
+  repair_payload = $true
   steam_play_configured = [bool]$steamStatus.configured
   steam_play_pending = [bool]$steamStatus.pending
   wrapper_exit = 0

@@ -553,16 +553,23 @@ fn stop_watch() -> Result<(), BridgeError> {
 }
 
 fn repair() -> Result<(), BridgeError> {
+    let bootstrap = app_root().join("bootstrap.ps1");
+    if !bootstrap.is_file() {
+        return Err(BridgeError::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "repair bootstrap is missing; rerun the one-line installer",
+        )));
+    }
     let output = Command::new("powershell.exe")
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
-        .arg(app_root().join("startup.ps1"))
-        .args(["-Action", "install"])
+        .arg(bootstrap)
+        .arg("-Repair")
         .output()?;
     std::io::stdout().write_all(&output.stdout)?;
     std::io::stderr().write_all(&output.stderr)?;
     if !output.status.success() {
         return Err(BridgeError::Io(std::io::Error::other(
-            "repair script failed",
+            "verified repair reinstall failed",
         )));
     }
     Ok(())

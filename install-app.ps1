@@ -51,7 +51,7 @@ right_y.curve=1
 if ($SourceBuild) { Set-InstallerStep 4 'Installing the locally built bridge' 'Keeping your existing mapping and settings.' }
 else { Set-InstallerStep 2 'Installing the native controller bridge' 'No Python runtime is required.' }
 Copy-Item -LiteralPath $BridgeSource -Destination $Bridge -Force
-foreach ($file in 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'steam-launch-options.ps1', 'verify-installed.ps1', 'installer-ui.ps1') {
+foreach ($file in 'bootstrap.ps1', 'install-app.ps1', 'startup.ps1', 'uninstall.ps1', 'driver.ps1', 'open-fpv.ps1', 'game-check.ps1', 'launch-fpv.ps1', 'launch-fpv.cmd', 'steam-launch-options.ps1', 'verify-installed.ps1', 'installer-ui.ps1') {
   Copy-Item -LiteralPath (Join-Path $SourceRoot $file) -Destination (Join-Path $Root $file) -Force
 }
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Installation did not produce rcn-bridge.exe.' }

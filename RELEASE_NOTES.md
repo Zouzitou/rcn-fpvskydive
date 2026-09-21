@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.61
+# RCN FPV SkyDive v0.1.62
 
 ## Highlights
 
@@ -6,6 +6,7 @@
 - Driver installation continues to validate the official Windows driver-package trust boundary before UAC or `pnputil`.
 - The Rust package metadata now correctly declares the project’s AGPLv3 license.
 - Repeated transport failures now use a bounded reconnect delay instead of retrying in a rapid loop.
+- The `repair` command now performs a verified reinstall of its pinned release payload instead of only repairing launcher state.
 
 ## Flight notes
 
