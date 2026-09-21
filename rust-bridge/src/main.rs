@@ -718,14 +718,19 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
 
 fn new_ready_target(client: &Client) -> Result<TargetHandle<Xbox360, Ready>, BridgeError> {
     let mut last_error = None;
-    for attempt in 0..10 {
-        match client.new_x360_target().plug()?.wait_for_ready() {
+    const MAX_ATTEMPTS: usize = 30;
+    for attempt in 0..MAX_ATTEMPTS {
+        match client
+            .new_x360_target()
+            .plug()
+            .and_then(|pending| pending.wait_for_ready())
+        {
             Ok(target) => return Ok(target),
             Err(error @ ClientError::Bus(BusError::TargetNotReady { .. }))
-                if attempt + 1 < 10 =>
+                if attempt + 1 < MAX_ATTEMPTS =>
             {
                 last_error = Some(error);
-                thread::sleep(Duration::from_millis(100));
+                thread::sleep(Duration::from_millis(200));
             }
             Err(error) => return Err(error.into()),
         }

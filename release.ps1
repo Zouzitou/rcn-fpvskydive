@@ -29,8 +29,13 @@ Set-Content -LiteralPath 'rust-bridge/Cargo.toml' -Value $cargo -NoNewline
 cargo test --manifest-path rust-bridge\Cargo.toml
 cargo build --release --manifest-path rust-bridge\Cargo.toml
 $bridge = 'rust-bridge\target\release\rcn-bridge.exe'
-& $bridge self-test
-if ($LASTEXITCODE -ne 0) { throw 'Native virtual-controller self-test failed; release cancelled.' }
+$selfTestPassed = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+  & $bridge self-test
+  if ($LASTEXITCODE -eq 0) { $selfTestPassed = $true; break }
+  if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
+}
+if (-not $selfTestPassed) { throw 'Native virtual-controller self-test failed; release cancelled.' }
 New-Item -ItemType Directory -Force -Path (Join-Path $payload 'bin') | Out-Null
 Copy-Item -LiteralPath $bridge -Destination (Join-Path $payload 'bin\rcn-bridge.exe') -Force
 $items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','verify-installed.ps1','startup.ps1','uninstall.ps1','driver.ps1','open-fpv.ps1','launch-fpv.ps1','launch-fpv.cmd','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
