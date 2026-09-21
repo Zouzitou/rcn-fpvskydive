@@ -46,6 +46,7 @@ def test_bridge_opens_only_discovered_candidate(tmp_path):
     bridge.poll_once(); assert len(bridge.transport.writes) == 3; bridge.stop()
     health = HealthStore(tmp_path).path.read_text(encoding="utf-8")
     assert '"protocol_port": "COM9"' in health and '"usb_instance_id": "MI_02"' in health
+    assert '"serial_open": true' in health and '"packet_count": 0' in health
 
 def test_bridge_emits_axes_only_after_live_verification(tmp_path):
     class LiveTransport(Transport):
@@ -54,3 +55,5 @@ def test_bridge_emits_axes_only_after_live_verification(tmp_path):
     output=Output(); bridge=Bridge(tmp_path, lambda: PortCandidate("COM9", "For Protocol", "2CA3", "1020", "MI_02"), LiveTransport, output, HealthStore(tmp_path))
     bridge.start(); bridge.connect_if_available(); bridge.poll_once(); assert "neutral" in output.events
     bridge.poll_once(); bridge.stop(); assert output.events.count("neutral") >= 2
+    health = HealthStore(tmp_path).path.read_text(encoding="utf-8")
+    assert '"packet_count": 2' in health and '"valid_frame_count": 2' in health

@@ -19,6 +19,8 @@ class Bridge:
         self.next_connect_at = 0.0
         self.axis_configs = axis_configs
         self.previous_axes = {k: 0.0 for k in ("left_x", "left_y", "right_x", "right_y")}
+        self.packet_count = 0
+        self.valid_frame_count = 0
     def start(self):
         self.lock.acquire()
         self.logger.event("bridge_start", pid=__import__("os").getpid())
@@ -37,6 +39,9 @@ class Bridge:
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
         self.transport = self.transport_factory(candidate)
         result = self.transport.open()
+        self.health.write(self.lifecycle.state.value, protocol_port=candidate.device,
+                          usb_instance_id=candidate.instance_id, serial_open=True,
+                          packet_count=self.packet_count, valid_frame_count=self.valid_frame_count)
         if hasattr(self.transport, "write"):
             self.transport.write(build_enable_simulator())
             self.transport.write(build_read_sticks())
@@ -49,20 +54,26 @@ class Bridge:
         if hasattr(self.transport, "write"):
             self.transport.write(build_read_sticks())
         frames = self.transport.read_frames()
+        self.packet_count += len(frames)
         valid = 0
         for packet in frames:
             decoded = parse_rcn1_sticks(packet)
             if decoded is None: continue
             axes = map_sticks(decoded, self.axis_configs)
             for name, value in axes.items(): self.lifecycle.verification.observe(name, self.previous_axes[name], value)
-            self.previous_axes = axes; valid += 1
+            self.previous_axes = axes; valid += 1; self.valid_frame_count += 1
             if self.lifecycle.state == BridgeState.CONNECTED and hasattr(self.output, "set_axes"):
                 self.output.set_axes(axes)
         if valid:
-            self.last_frame_at = monotonic(); self.lifecycle.frame(self.last_frame_at)
+            self.last_frame_at = monotonic()
+            self.lifecycle.frame(self.last_frame_at, serial_open=True, packet_count=self.packet_count,
+                                 valid_frame_count=self.valid_frame_count)
             if self.last_frame_log_at is None or self.last_frame_at - self.last_frame_log_at >= 5:
                 self.logger.event("valid_frames", count=valid)
                 self.last_frame_log_at = self.last_frame_at
+        elif frames:
+            self.health.write(self.lifecycle.state.value, serial_open=True, packet_count=self.packet_count,
+                              valid_frame_count=self.valid_frame_count)
         return bool(valid)
     def disconnect(self, reason="transport lost"):
         if self.transport:

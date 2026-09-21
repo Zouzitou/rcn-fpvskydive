@@ -33,18 +33,18 @@ class Lifecycle:
     def candidate_found(self, **details):
         self.verification = LiveVerification()
         self.state = BridgeState.OPENING_PROTOCOL; self.health.write(self.state.value, **details)
-    def frame(self, timestamp=None):
+    def frame(self, timestamp=None, **details):
         self.last_frame = timestamp or monotonic()
         if self.state == BridgeState.OPENING_PROTOCOL:
             self.state = BridgeState.VERIFYING_LIVE_INPUT
         if self.state == BridgeState.VERIFYING_LIVE_INPUT and self.verification.complete:
             self.state = BridgeState.CONNECTED
             self.failures = 0
-        self.health.write(self.state.value, last_valid_frame=self.last_frame)
+        self.health.write(self.state.value, last_valid_frame=self.last_frame, **details)
     def lost(self, reason=None):
         self.failures += 1; self.state = BridgeState.RECONNECT_BACKOFF
         delay = self.backoff_seconds[min(self.failures - 1, len(self.backoff_seconds) - 1)]
-        details = {"retry_seconds": delay}
+        details = {"retry_seconds": delay, "serial_open": False}
         if reason: details["reason"] = reason
         self.health.write(self.state.value, **details)
         return delay

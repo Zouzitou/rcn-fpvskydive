@@ -68,6 +68,7 @@ def test_lifecycle_records_reconnect_reason(tmp_path):
     store = HealthStore(tmp_path); life = Lifecycle(store)
     life.lost("Protocol port is busy")
     assert store.path.read_text(encoding="utf-8").find("Protocol port is busy") >= 0
+    assert '"serial_open": false' in store.path.read_text(encoding="utf-8")
 
 def test_transport_reads_incremental_frames():
     class FakeSerial:
