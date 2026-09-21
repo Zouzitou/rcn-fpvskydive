@@ -46,3 +46,10 @@ def test_driver_install_requires_a_managed_inf(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli, "ROOT", tmp_path)
     assert cli.main(["driver-install"]) == 2
     assert "managed drivers folder" in capsys.readouterr().err
+
+def test_calibrate_reports_the_next_unverified_live_axis(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    state = tmp_path / "state"; state.mkdir()
+    (state / "health.json").write_text('{"state":"verifying_live_input","live_axes":["left_x"]}', encoding="utf-8")
+    assert cli.main(["calibrate"]) == 0
+    assert "left stick vertically" in capsys.readouterr().out

@@ -54,6 +54,8 @@ def test_lifecycle_requires_all_live_axes(tmp_path):
     life.frame(1.0); assert life.state == BridgeState.VERIFYING_LIVE_INPUT
     for axis in life.verification.required_axes: life.verification.observe(axis, 0.0, 0.2)
     life.frame(2.0); assert life.state == BridgeState.CONNECTED
+    health = HealthStore(tmp_path).path.read_text(encoding="utf-8")
+    assert '"live_input_verified": true' in health and '"left_x"' in health
     assert life.lost() == 1
 
 def test_lifecycle_requires_fresh_live_input_after_reconnect(tmp_path):

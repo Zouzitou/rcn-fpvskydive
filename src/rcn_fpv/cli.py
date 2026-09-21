@@ -11,7 +11,7 @@ ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rcn-fpv", description="DJI RC-N bridge for FPV SkyDive")
-    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config", "driver-install", "open-game"])
+    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config", "driver-install", "open-game", "calibrate"])
     p.add_argument("--inf", type=Path, help="Official DJI INF placed under the managed drivers folder")
     p.add_argument("--mode", choices=["mode1", "mode2"])
     p.add_argument("--axis", choices=AXIS_NAMES)
@@ -51,6 +51,29 @@ def main(argv=None):
                     changed = True
         if changed: save_config(ROOT, config)
         print(json.dumps(config, indent=2))
+        return 0
+    if args.command == "calibrate":
+        if not state.exists():
+            print("calibration unavailable: start the bridge first", file=sys.stderr)
+            return 2
+        try:
+            health = json.loads(state.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            print("calibration unavailable: health state is unreadable", file=sys.stderr)
+            return 2
+        config = load_config(ROOT)
+        observed = set(health.get("live_axes", []))
+        axes = ("left_x", "left_y", "right_x", "right_y")
+        instructions = {
+            "left_x": "move the left stick left and right (yaw)",
+            "left_y": "move the left stick vertically" if config["transmitter_mode"] == "mode2" else "move the right stick vertically (throttle)",
+            "right_x": "move the right stick left and right (roll)",
+            "right_y": "move the right stick vertically" if config["transmitter_mode"] == "mode2" else "move the left stick vertically (pitch)",
+        }
+        next_axis = next((axis for axis in axes if axis not in observed), None)
+        print(json.dumps({"state": health.get("state", "unknown"), "mode": config["transmitter_mode"],
+                          "observed_axes": sorted(observed), "live_input_verified": bool(health.get("live_input_verified")),
+                          "next_step": instructions[next_axis] if next_axis else "all four axes verified; open FPV SkyDive and calibrate its bindings"}, indent=2))
         return 0
     if args.command == "driver-install":
         try:
