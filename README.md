@@ -18,7 +18,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [doc
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock
-\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
 ## Installation
@@ -51,7 +51,7 @@ rcn-fpv config
 rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
 ```
 
-`rcn-fpv repair` restores the managed local package and current-user startup registration. If the managed environment itself is missing, rerun the release-pinned bootstrap command.
+`rcn-fpv repair` restores the managed local package and current-user startup registration. It does not install or replace device drivers. If the managed environment itself is missing, rerun the release-pinned bootstrap command.
 
 ## Security
 
