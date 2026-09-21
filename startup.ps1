@@ -15,7 +15,13 @@ function Get-BridgeProcesses {
 }
 function Remove-LoginBridge {
   @(Get-BridgeProcesses) | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-  schtasks.exe /Delete /TN $TaskName /F 2>$null | Out-Null
+  $oldErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'SilentlyContinue'
+    schtasks.exe /Delete /TN $TaskName /F 2>$null | Out-Null
+  } finally {
+    $ErrorActionPreference = $oldErrorActionPreference
+  }
   Remove-Item -LiteralPath (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\RCN-FPVSkyDive.cmd') -Force -ErrorAction SilentlyContinue
 }
 if ($Action -eq 'remove') {
