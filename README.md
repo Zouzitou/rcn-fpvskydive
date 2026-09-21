@@ -44,6 +44,13 @@ rcn-fpv uninstall
 
 The installed uninstaller is also available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
 
+Configure Mode 2 defaults or a specific virtual axis without editing files by hand:
+
+```powershell
+rcn-fpv config
+rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
+```
+
 ## Security
 
 Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.

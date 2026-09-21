@@ -3,12 +3,20 @@ from pathlib import Path
 from . import __version__
 from .diagnostics import report
 from .discovery import choose_candidate, enumerate_protocol_ports
+from .config import AXIS_NAMES, load_config, save_config
 
 ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rcn-fpv", description="DJI RC-N bridge for FPV SkyDive")
-    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall"])
+    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config"])
+    p.add_argument("--mode", choices=["mode1", "mode2"])
+    p.add_argument("--axis", choices=AXIS_NAMES)
+    p.add_argument("--invert", choices=["on", "off"])
+    p.add_argument("--center", type=float)
+    p.add_argument("--dead-zone", type=float)
+    p.add_argument("--saturation", type=float)
+    p.add_argument("--exponent", type=float)
     args = p.parse_args(argv)
     state = ROOT / "state" / "health.json"
     if args.command == "status":
@@ -21,6 +29,25 @@ def main(argv=None):
         print(json.dumps(report(ROOT, {"version": __version__, "state_file": state.exists(),
             "usb_devices": [c.__dict__ for c in candidates],
             "protocol_port": selected.__dict__ if selected else None}), indent=2))
+        return 0
+    if args.command == "config":
+        config = load_config(ROOT)
+        changed = False
+        if args.mode:
+            config["transmitter_mode"] = args.mode; changed = True
+        axis_values = {"invert": args.invert, "center": args.center, "dead_zone": args.dead_zone,
+                       "saturation": args.saturation, "exponent": args.exponent}
+        if any(value is not None for value in axis_values.values()):
+            if not args.axis:
+                print("config failed safely: --axis is required when changing an axis setting", file=sys.stderr)
+                return 2
+            target = config["axes"][args.axis]
+            for name, value in axis_values.items():
+                if value is not None:
+                    target[name] = value == "on" if name == "invert" else value
+                    changed = True
+        if changed: save_config(ROOT, config)
+        print(json.dumps(config, indent=2))
         return 0
     if args.command == "start":
         try:
