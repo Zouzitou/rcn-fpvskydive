@@ -732,7 +732,7 @@ fn discover_protocol_port() -> Option<String> {
 }
 
 fn self_test_gamepad() -> Result<(), BridgeError> {
-    let client = Client::connect()?;
+    let client = connect_vigem()?;
     let target = new_ready_target(&client)?;
     let pulse = X360Report {
         thumb_lx: 4_096,
@@ -742,6 +742,26 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
     target.update(&X360Report::default())?;
     println!("{{\"virtual_gamepad_test\":\"passed\",\"cleanup\":\"neutral update sent\"}}");
     Ok(())
+}
+
+fn connect_vigem() -> Result<Client, BridgeError> {
+    let mut last_error = None;
+    const MAX_ATTEMPTS: usize = 30;
+    for attempt in 0..MAX_ATTEMPTS {
+        match Client::connect() {
+            Ok(client) => return Ok(client),
+            Err(error @ ClientError::Bus(BusError::TargetNotReady { .. }))
+                if attempt + 1 < MAX_ATTEMPTS =>
+            {
+                last_error = Some(error);
+                thread::sleep(Duration::from_millis(200));
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Err(last_error
+        .expect("retry loop must record the transient ViGEm connection error")
+        .into())
 }
 
 fn new_ready_target(client: &Client) -> Result<TargetHandle<Xbox360, Ready>, BridgeError> {
@@ -795,7 +815,7 @@ fn run_bridge(
         publish_status("no_live_input", Some(port), 0, None);
         return Err(BridgeError::NoLiveFrames);
     }
-    let client = Client::connect()?;
+    let client = connect_vigem()?;
     let target = new_ready_target(&client)?;
     let neutral = X360Report::default();
     target.update(&neutral)?;

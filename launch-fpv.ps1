@@ -41,13 +41,20 @@ try {
   $gameName = [IO.Path]::GetFileNameWithoutExtension($GameExe)
   $gamePath = [IO.Path]::GetFullPath($GameExe)
   $gameSeen = $false
+  $lastGameSeen = $null
   $handoffDeadline = (Get-Date).AddSeconds(15)
   while ($true) {
     $matchingGames = @(Get-Process -Name $gameName -ErrorAction SilentlyContinue | Where-Object {
       try { $_.Path -and ([IO.Path]::GetFullPath($_.Path) -ieq $gamePath) } catch { $false }
     })
-    if ($matchingGames.Count -gt 0) { $gameSeen = $true }
-    if ($gameSeen -and $matchingGames.Count -eq 0) { break }
+    if ($matchingGames.Count -gt 0) {
+      $gameSeen = $true
+      $lastGameSeen = Get-Date
+    }
+    # The Steam bootstrap process and the game process are separated by a
+    # brief no-process gap. Only stop the bridge after FPV has been absent
+    # long enough that this cannot be the normal handoff.
+    if ($gameSeen -and $matchingGames.Count -eq 0 -and ((Get-Date) - $lastGameSeen).TotalSeconds -ge 5) { break }
     if (-not $gameSeen -and $GameProcess.HasExited -and (Get-Date) -ge $handoffDeadline) {
       throw 'FPV SkyDive exited before its game process became available.'
     }
