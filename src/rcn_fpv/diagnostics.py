@@ -5,6 +5,15 @@ from .steam import find_fpv_skydive, steam_library_roots
 from .driver import discover_driver_evidence, validate_driver
 from . import __version__
 
+def process_alive(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except (TypeError, ValueError, ProcessLookupError):
+        return False
+    except PermissionError:
+        return "inaccessible"
+
 def redact(value):
     if value is None or isinstance(value, (bool, int, float)):
         return value
@@ -33,6 +42,15 @@ def report(root: Path, extra=None):
             data["health"] = json.loads(health.read_text(encoding="utf-8"))
             data["bridge_process"]["pid"] = data["health"].get("pid")
             data["virtual_gamepad_test"] = data["health"].get("virtual_gamepad_test", data["virtual_gamepad_test"])
+            data["bridge_process"]["alive"] = process_alive(data["bridge_process"]["pid"])
+            data["serial_open"] = data["health"].get("serial_open", data["serial_open"])
+            data["protocol_port"] = data["health"].get("protocol_port", data["protocol_port"])
+            data["live_frames"] = {
+                "packet_count": data["health"].get("packet_count", 0),
+                "valid_frame_count": data["health"].get("valid_frame_count", 0),
+                "last_valid_frame": data["health"].get("last_valid_frame"),
+                "live_input_verified": data["health"].get("live_input_verified", False),
+            }
         except (OSError, ValueError):
             data["health"] = {"error": "unreadable health file"}
     data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]

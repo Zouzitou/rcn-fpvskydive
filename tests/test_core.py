@@ -2,6 +2,7 @@ from rcn_fpv.discovery import PortCandidate, choose_candidate, classify_usb
 from rcn_fpv.mapping import AxisConfig, map_axis, map_sticks
 from rcn_fpv.protocol import encode, parse, parse_rcn1_sticks, crc8, crc16, build_read_sticks, parse_duml
 from rcn_fpv.runtime import HealthStore, ProcessLock, SingletonError
+from rcn_fpv import diagnostics
 from rcn_fpv.diagnostics import redact, report
 from rcn_fpv.gamepad import NullBackend, self_test
 
@@ -103,3 +104,12 @@ def test_health_retains_gamepad_evidence_across_state_changes(tmp_path):
     store.write("waiting_for_controller")
     assert report(tmp_path)["health"]["virtual_gamepad_test"] == "passed"
     assert report(tmp_path)["health"]["protocol_port"] == "COM12"
+
+def test_diagnostics_reports_liveness_and_live_frame_evidence(tmp_path, monkeypatch):
+    store = HealthStore(tmp_path)
+    store.write("connected", pid=999, serial_open=True, packet_count=12, valid_frame_count=11,
+                last_valid_frame=5.0, live_input_verified=True)
+    monkeypatch.setattr(diagnostics.os, "kill", lambda *_: (_ for _ in ()).throw(ProcessLookupError()))
+    result = report(tmp_path)
+    assert result["bridge_process"]["alive"] is False
+    assert result["serial_open"] is True and result["live_frames"]["valid_frame_count"] == 11
