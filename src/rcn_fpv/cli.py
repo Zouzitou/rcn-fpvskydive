@@ -1,7 +1,7 @@
 import argparse, json, os, subprocess, sys
 from pathlib import Path
 from . import __version__
-from .diagnostics import report
+from .diagnostics import process_alive, report
 from .driver import DriverInstallError, install_managed_driver
 from .discovery import choose_candidate, enumerate_protocol_ports
 from .config import AXIS_NAMES, load_config, save_config
@@ -23,8 +23,28 @@ def main(argv=None):
     args = p.parse_args(argv)
     state = ROOT / "state" / "health.json"
     if args.command == "status":
-        if state.exists(): print(state.read_text(encoding="utf-8"))
-        else: print(json.dumps({"state": "not-installed", "version": __version__}))
+        if not state.exists():
+            print(json.dumps({"state": "not-installed", "version": __version__, "ready": False,
+                              "next_action": "run the release-pinned bootstrapper"}, indent=2))
+            return 0
+        try:
+            health = json.loads(state.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            print(json.dumps({"state": "failed", "ready": False, "next_action": "run rcn-fpv diagnose"}, indent=2))
+            return 2
+        gamepad_ok = str(health.get("virtual_gamepad_test", "")).startswith("virtual Xbox controller created")
+        bridge_alive = process_alive(health.get("pid")) is True
+        ready = all((health.get("state") == "connected", gamepad_ok, health.get("serial_open") is True,
+                     health.get("live_input_verified") is True, health.get("stability_verified") is True, bridge_alive))
+        if ready: next_action = "run rcn-fpv open-game, then use FPV SkyDive's normal controller calibration"
+        elif health.get("state") == "verifying_live_input": next_action = "run rcn-fpv calibrate and move the requested stick"
+        elif health.get("state") == "waiting_for_controller": next_action = "power the controller and connect its data port with a data cable"
+        elif health.get("state") == "connected": next_action = "keep the controller connected until the stability gate completes"
+        else: next_action = "run rcn-fpv diagnose"
+        print(json.dumps({"state": health.get("state", "unknown"), "ready": ready, "next_action": next_action,
+                          "protocol_port": health.get("protocol_port"), "live_axes": health.get("live_axes", []),
+                          "stability_verified": health.get("stability_verified", False), "bridge_pid": health.get("pid"),
+                          "bridge_alive": bridge_alive}, indent=2))
         return 0
     if args.command == "diagnose":
         candidates = enumerate_protocol_ports()
