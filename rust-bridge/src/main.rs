@@ -330,6 +330,25 @@ impl Drop for WatchMutex {
     }
 }
 
+#[derive(Default)]
+struct ReconnectBackoff {
+    consecutive_failures: u8,
+}
+
+impl ReconnectBackoff {
+    const MAX_DELAY_SECONDS: u64 = 32;
+
+    fn next_delay(&mut self) -> Duration {
+        let exponent = self.consecutive_failures.min(5);
+        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
+        Duration::from_secs((1_u64 << exponent).min(Self::MAX_DELAY_SECONDS))
+    }
+
+    fn reset(&mut self) {
+        self.consecutive_failures = 0;
+    }
+}
+
 fn acquire_watch_mutex() -> Result<WatchMutex, BridgeError> {
     acquire_watch_mutex_named("Global\\RCN-FPVSkyDive-Bridge")
 }
@@ -905,33 +924,46 @@ fn watch() -> Result<(), BridgeError> {
         Err(error) => return Err(error),
     };
     let mapping = MappingConfig::load(&mapping_config_path());
+    let mut reconnect_backoff = ReconnectBackoff::default();
     loop {
-        match discover_protocol_port() {
+        let wait = match discover_protocol_port() {
             Some(port) => {
                 persist_device_identity(&port);
                 if !live_verification_valid(&port) {
+                    reconnect_backoff.reset();
                     publish_status(
                         "awaiting_live_verification",
                         Some(&port),
                         0,
                         Some("run verify-input and move all four sticks"),
                     );
-                    thread::sleep(Duration::from_secs(1));
-                    continue;
-                }
-                publish_status("connecting", Some(&port), 0, None);
-                eprintln!("RCN bridge: using {port}");
-                if let Err(error) = run_bridge(&port, None, mapping) {
-                    publish_status("waiting_for_controller", None, 0, Some(&error.to_string()));
-                    eprintln!("RCN bridge: disconnected or unavailable: {error}");
+                    Duration::from_secs(1)
+                } else {
+                    publish_status("connecting", Some(&port), 0, None);
+                    eprintln!("RCN bridge: using {port}");
+                    match run_bridge(&port, None, mapping) {
+                        Ok(_) => {
+                            reconnect_backoff.reset();
+                            Duration::from_secs(1)
+                        }
+                        Err(error) => {
+                            let wait = reconnect_backoff.next_delay();
+                            let detail = format!("{error}; retrying in {}s", wait.as_secs());
+                            publish_status("waiting_for_controller", None, 0, Some(&detail));
+                            eprintln!("RCN bridge: disconnected or unavailable: {detail}");
+                            wait
+                        }
+                    }
                 }
             }
             None => {
+                reconnect_backoff.reset();
                 publish_status("waiting_for_controller", None, 0, None);
                 eprintln!("RCN bridge: waiting for a healthy DJI Protocol interface");
+                Duration::from_secs(1)
             }
-        }
-        thread::sleep(Duration::from_secs(1));
+        };
+        thread::sleep(wait);
     }
 }
 
@@ -1009,7 +1041,8 @@ fn main() -> Result<(), BridgeError> {
 #[cfg(test)]
 mod status_tests {
     use super::{
-        BridgeError, acquire_watch_mutex_named, diagnostic_category, escape_json, redact_text,
+        BridgeError, ReconnectBackoff, acquire_watch_mutex_named, diagnostic_category, escape_json,
+        redact_text,
     };
 
     #[test]
@@ -1026,6 +1059,17 @@ mod status_tests {
             Err(BridgeError::AlreadyRunning)
         ));
         drop(first);
+    }
+
+    #[test]
+    fn backs_off_reconnects_and_resets_after_a_healthy_state() {
+        let mut backoff = ReconnectBackoff::default();
+        let delays = (0..8)
+            .map(|_| backoff.next_delay().as_secs())
+            .collect::<Vec<_>>();
+        assert_eq!(delays, vec![1, 2, 4, 8, 16, 32, 32, 32]);
+        backoff.reset();
+        assert_eq!(backoff.next_delay().as_secs(), 1);
     }
 
     #[test]

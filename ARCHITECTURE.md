@@ -21,7 +21,7 @@ bootstrap.ps1
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with per-axis inversion, dead zone, trim, saturation, and response curve loaded from the managed state file; all buttons remain clear.
 - `gamepad`: native ViGEm adapter with neutral-on-start, explicit neutral-on-every-exit (including transport/output failure), and target removal when a session ends.
-- `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, persists the selected PnP instance ID, and remains neutral/awaiting until the device-specific four-axis live-input approval exists. Approval follows the PnP instance rather than a COM number, so a legitimate COM renumber does not invalidate it. It stops when the game process exits.
+- `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, persists the selected PnP instance ID, and remains neutral/awaiting until the device-specific four-axis live-input approval exists. Repeated transport failures back off from 1 to 32 seconds instead of crash-looping. Approval follows the PnP instance rather than a COM number, so a legitimate COM renumber does not invalidate it. It stops when the game process exits.
 - `flight console`: the native `tui` command is a read-mostly Ratatui/Crossterm dashboard over the same state files and command handlers. It never starts at login or bypasses the live-input gate. Actions that would interrupt a flight are disabled while FPV SkyDive is running, and stopping a connected bridge requires an explicit confirmation.
 
 ## Data flow
@@ -53,7 +53,7 @@ The installer is idempotent and has no login-start component. Steam starts the b
 - Supported/unsupported VID/PID/interface combinations are classified correctly.
 - DuML frames parse valid packets and reject bad length/checksum/truncated input.
 - Mapping covers neutral, inversion, trim, dead zone, saturation, curves, and configured transmitter modes.
-- Disconnect/reconnect and COM renumbering return to connected state with neutral output during gaps.
+- Disconnect/reconnect and COM renumbering return to connected state with neutral output during gaps; repeated transport failures use the tested 1/2/4/8/16/32-second bounded retry policy.
 - Duplicate bridge startup is rejected by a Windows named mutex and leaves exactly one owner.
 - Self-test always releases axes/buttons and reports cleanup failures.
 - `diagnose` reports OS/runtime, signed driver records, Protocol port, live frames, startup state, Steam detection, process identity, mapping path, and the last 100 log lines. A redacted export remains a release gate.

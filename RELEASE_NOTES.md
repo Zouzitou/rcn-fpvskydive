@@ -1,10 +1,11 @@
-# RCN FPV SkyDive v0.1.60
+# RCN FPV SkyDive v0.1.61
 
 ## Highlights
 
 - The bridge now makes an explicit neutral Xbox-stick update on every runtime exit path after the virtual controller is created, including a transport or output error.
 - Driver installation continues to validate the official Windows driver-package trust boundary before UAC or `pnputil`.
 - The Rust package metadata now correctly declares the project’s AGPLv3 license.
+- Repeated transport failures now use a bounded reconnect delay instead of retrying in a rapid loop.
 
 ## Flight notes
 
