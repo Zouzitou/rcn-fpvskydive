@@ -118,7 +118,7 @@ dependencies = [
 
 [[package]]
 name = "rcn-bridge"
-version = "0.1.27"
+version = "0.1.28"
 dependencies = [
  "serialport",
  "thiserror",

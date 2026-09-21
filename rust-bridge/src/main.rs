@@ -57,6 +57,10 @@ fn mapping_config_path() -> PathBuf {
     app_root().join("state").join("mapping.conf")
 }
 
+fn device_state_path() -> PathBuf {
+    app_root().join("state").join("device.json")
+}
+
 fn log_line(message: &str) {
     let path = app_root().join("logs").join("bridge.log");
     let Some(parent) = path.parent() else { return };
@@ -93,11 +97,12 @@ fn publish_status(state: &str, port: Option<&str>, mapped_frames: usize, detail:
         .map(|time| time.as_secs())
         .unwrap_or(0);
     let json = format!(
-        "{{\"state\":\"{}\",\"port\":{},\"mapped_frames\":{},\"detail\":{},\"updated_unix\":{}}}",
+        "{{\"state\":\"{}\",\"port\":{},\"mapped_frames\":{},\"detail\":{},\"pid\":{},\"updated_unix\":{}}}",
         escape_json(state),
         port,
         mapped_frames,
         detail,
+        std::process::id(),
         timestamp
     );
     let _ = fs::write(path, json);
@@ -114,6 +119,36 @@ fn run_powershell(script: &str) -> Result<std::process::Output, BridgeError> {
     Ok(Command::new("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .output()?)
+}
+
+fn persist_device_identity(port: &str) {
+    let escaped_port = port.replace('\'', "''");
+    let query = format!(
+        "Get-CimInstance Win32_PnPEntity | Where-Object {{ $_.Status -eq 'OK' -and $_.PNPDeviceID -match 'VID_2CA3' -and $_.Name -match '\\({escaped_port}\\)' }} | Select-Object -First 1 | ForEach-Object {{ \"$($_.Name)|$($_.PNPDeviceID)\" }}"
+    );
+    let Ok(output) = run_powershell(&query) else {
+        return;
+    };
+    let identity = output_text(output);
+    let Some((name, instance_id)) = identity.split_once('|') else {
+        return;
+    };
+    let path = device_state_path();
+    let Some(parent) = path.parent() else { return };
+    if fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let json = format!(
+        "{{\"port\":\"{}\",\"name\":\"{}\",\"instance_id\":\"{}\",\"updated_unix\":{}}}",
+        escape_json(port),
+        escape_json(name),
+        escape_json(instance_id),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|time| time.as_secs())
+            .unwrap_or(0)
+    );
+    let _ = fs::write(path, json);
 }
 
 fn output_text(output: std::process::Output) -> String {
@@ -187,6 +222,8 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
     )?;
     let startup = fs::read_to_string(app_root().join("state").join("startup.json"))
         .unwrap_or_else(|_| "not_registered".to_string());
+    let device =
+        fs::read_to_string(device_state_path()).unwrap_or_else(|_| "not_persisted".to_string());
     let protocol_port = discover_protocol_port();
     let live_frames = protocol_port.as_deref().map(probe_live_frames).transpose();
     let processes_output = run_powershell(
@@ -252,6 +289,10 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
         } else {
             startup
         }
+    );
+    println!(
+        "selected device: {}",
+        if redact { redact_text(&device) } else { device }
     );
     let game_path = {
         let text = output_text(steam_output);
@@ -628,6 +669,7 @@ fn watch() -> Result<(), BridgeError> {
     loop {
         match discover_protocol_port() {
             Some(port) => {
+                persist_device_identity(&port);
                 publish_status("connecting", Some(&port), 0, None);
                 eprintln!("RCN bridge: using {port}");
                 if let Err(error) = run_bridge(&port, None, mapping) {
@@ -680,6 +722,7 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "bridge-auto" {
         let port = discover_protocol_port().ok_or(BridgeError::NoProtocolPort)?;
+        persist_device_identity(&port);
         run_bridge(&port, None, MappingConfig::load(&mapping_config_path()))?;
         return Ok(());
     }
