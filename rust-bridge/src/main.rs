@@ -762,8 +762,48 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
     }
 }
 
+fn protocol_port_from_name(name: &str) -> Option<String> {
+    let normalized = name.to_ascii_lowercase();
+    if !normalized.contains("for protocol") {
+        return None;
+    }
+    let start = normalized.find("(com")? + 1;
+    let end = name[start..].find(')')? + start;
+    let port = name[start..end].trim();
+    (port.len() > 3
+        && port.starts_with("COM")
+        && port[3..]
+            .chars()
+            .all(|character| character.is_ascii_digit()))
+    .then(|| port.to_string())
+}
+
+fn rank_protocol_port(lines: &str) -> Option<String> {
+    let mut candidates = lines
+        .lines()
+        .filter_map(|line| {
+            let (name, instance_id) = line.split_once('|')?;
+            let port = protocol_port_from_name(name)?;
+            let port_number = port[3..].parse::<u32>().ok()?;
+            Some((
+                port_number,
+                name.to_ascii_lowercase(),
+                instance_id.to_ascii_lowercase(),
+                port,
+            ))
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| {
+        left.0
+            .cmp(&right.0)
+            .then(left.1.cmp(&right.1))
+            .then(left.2.cmp(&right.2))
+    });
+    candidates.into_iter().next().map(|candidate| candidate.3)
+}
+
 fn discover_protocol_port() -> Option<String> {
-    let query = "Get-CimInstance Win32_PnPEntity | Where-Object { $_.Status -eq 'OK' -and $_.PNPDeviceID -match 'VID_2CA3' -and $_.Name -match 'For Protocol.*\\(COM[0-9]+\\)' } | Sort-Object Name | Select-Object -First 1 -ExpandProperty Name";
+    let query = "Get-CimInstance Win32_PnPEntity | Where-Object { $_.Status -eq 'OK' -and $_.PNPDeviceID -match 'VID_2CA3' } | ForEach-Object { \"$($_.Name)|$($_.PNPDeviceID)\" }";
     let output = Command::new("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", query])
         .output()
@@ -771,11 +811,7 @@ fn discover_protocol_port() -> Option<String> {
     if !output.status.success() {
         return None;
     }
-    let name = String::from_utf8_lossy(&output.stdout);
-    let start = name.find("(COM")? + 1;
-    let end = name[start..].find(')')? + start;
-    let port = name[start..end].trim();
-    port.starts_with("COM").then(|| port.to_string())
+    rank_protocol_port(&String::from_utf8_lossy(&output.stdout))
 }
 
 fn self_test_gamepad() -> Result<(), BridgeError> {
@@ -1049,7 +1085,7 @@ fn main() -> Result<(), BridgeError> {
 mod status_tests {
     use super::{
         BridgeError, ReconnectBackoff, acquire_watch_mutex_named, diagnostic_category, escape_json,
-        redact_text,
+        rank_protocol_port, redact_text,
     };
 
     #[test]
@@ -1099,6 +1135,20 @@ mod status_tests {
         assert_eq!(
             diagnostic_category("OK|For Protocol|VID_2CA3", Some("COM12"), &live),
             "protocol_live_input_present_run_verify_input"
+        );
+    }
+
+    #[test]
+    fn ranks_only_protocol_ports_without_hard_coding_a_com_number() {
+        let interfaces = concat!(
+            "DEVICE USB VCOM For Debug (COM11)|USB\\VID_2CA3&PID_1020&MI_04\n",
+            "DEVICE USB VCOM For Protocol (COM12)|USB\\VID_2CA3&PID_1020&MI_02\n",
+            "DEVICE USB VCOM For Protocol (COM3)|USB\\VID_2CA3&PID_1020&MI_12\n",
+        );
+        assert_eq!(rank_protocol_port(interfaces), Some("COM3".to_string()));
+        assert_eq!(
+            rank_protocol_port("DEVICE USB VCOM For Debug (COM19)|USB\\VID_2CA3"),
+            None
         );
     }
 }

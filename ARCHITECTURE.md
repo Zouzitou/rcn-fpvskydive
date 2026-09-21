@@ -49,7 +49,7 @@ The installer is idempotent and has no login-start component. Steam starts the b
 
 ### Automated
 
-- Candidate ranking prefers `For Protocol` over `For Debug`, never hard-codes COM numbers, and persists/resolves instance IDs.
+- Candidate ranking is native-tested: it selects only `For Protocol`, rejects `For Debug`, uses deterministic name/COM/instance ordering, never hard-codes COM numbers, and persists/resolves instance IDs.
 - Supported/unsupported VID/PID/interface combinations are classified correctly.
 - DuML frames parse valid packets and reject bad length/checksum/truncated input.
 - Mapping covers neutral, inversion, trim, dead zone, saturation, curves, and configured transmitter modes.

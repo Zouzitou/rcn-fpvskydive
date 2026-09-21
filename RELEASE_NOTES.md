@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.63
+# RCN FPV SkyDive v0.1.64
 
 ## Highlights
 
@@ -8,6 +8,7 @@
 - Repeated transport failures now use a bounded reconnect delay instead of retrying in a rapid loop.
 - The `repair` command now performs a verified reinstall of its pinned release payload instead of only repairing launcher state.
 - Removed the unused Python bridge and pytest suite so the public source tree matches the shipped native Rust runtime.
+- Added native-tested deterministic Protocol-port ranking: Debug ports are rejected and COM numbers are discovered, never assumed.
 
 ## Flight notes
 

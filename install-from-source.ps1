@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Ref = 'v0.1.63')
+param([string]$Ref = 'v0.1.64')
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
