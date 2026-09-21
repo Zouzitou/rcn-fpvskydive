@@ -3,7 +3,7 @@
 The bridge is launched by Steam only for FPV SkyDive. In the game's Steam **Properties → General → Launch Options**, add:
 
 ```text
-cmd.exe /d /c ""%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%"
+cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
 ```
 
 Steam supplies `%command%` as the normal game executable and arguments. The wrapper starts the native bridge, waits for that game process to exit, and stops the same bridge process. The user flow is:

@@ -9,7 +9,11 @@ $GameExe = $GameCommand[0]
 $GameArgs = @($GameCommand | Select-Object -Skip 1)
 $BridgeProcess = Start-Process -FilePath $Bridge -ArgumentList @('watch') -WindowStyle Hidden -PassThru
 try {
-  $GameProcess = Start-Process -FilePath $GameExe -ArgumentList $GameArgs -PassThru
+  if ($GameArgs.Count -gt 0) {
+    $GameProcess = Start-Process -FilePath $GameExe -ArgumentList $GameArgs -PassThru
+  } else {
+    $GameProcess = Start-Process -FilePath $GameExe -PassThru
+  }
   Wait-Process -Id $GameProcess.Id
   exit $GameProcess.ExitCode
 } finally {
