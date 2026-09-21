@@ -69,8 +69,11 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 if (-not $SourceBuild) { Set-InstallerStep 4 'Setting up Steam Play' 'Your normal Steam Play button will start the bridge.' }
 $SteamSetupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'steam-launch-options.ps1') -Action install 2>&1
 $SteamSetupExit = $LASTEXITCODE
-if ($SteamSetupExit -eq 0) { Write-InstallerText '     Steam Play is configured for FPV SkyDive.' 'Green' }
-else { Write-InstallerText '     Steam is open. Close it, then rerun this installer to finish Steam Play setup.' 'Amber' }
+$SteamSetup = $null
+try { $SteamSetup = ($SteamSetupOutput | Out-String | ConvertFrom-Json) } catch { }
+if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Write-InstallerText '     Steam is open; Play setup will finish automatically when Steam closes.' 'Amber' }
+elseif ($SteamSetupExit -eq 0) { Write-InstallerText '     Steam Play is configured for FPV SkyDive.' 'Green' }
+else { Write-InstallerText '     Steam Play setup could not finish. Run the installer again when Steam is closed.' 'Amber' }
 $StartupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install 2>&1
 if ($LASTEXITCODE -ne 0) { throw 'Could not configure the game-only launcher.' }
 
@@ -88,5 +91,6 @@ try {
 } catch { Write-InstallerText '     Start Menu shortcut was unavailable; the Steam launch option still works.' 'Amber' }
 if (-not $SourceBuild) { Set-InstallerStep 5 'Finishing safely' 'No controller driver was installed or changed.' }
 if (-not $SelfTestPassed) { Write-InstallerText '     Virtual Xbox self-test needs attention. Check ViGEmBus before flying.' 'Amber' }
-if ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Open FPV SkyDive with the normal Steam Play button.' }
-else { Complete-InstallerUi 'Start Menu works now; rerun after closing Steam to enable its Play button.' }
+if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi 'Steam Play will be ready automatically after Steam closes once.' }
+elseif ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Open FPV SkyDive with the normal Steam Play button.' }
+else { Complete-InstallerUi 'Start Menu works now; Steam Play can be repaired by rerunning this installer.' }

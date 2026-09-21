@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.54
+# RCN FPV SkyDive v0.1.55
 
 ## Highlights
 
@@ -11,7 +11,7 @@
 
 - The app checks for a healthy live controller connection before creating the virtual Xbox controller.
 - The bridge starts only with FPV SkyDive, never at Windows login, and never changes game bindings automatically.
-- Steam must be closed only while the installer writes its launch option; an existing FPV SkyDive launch argument is preserved.
+- If Steam is open, a short-lived one-shot worker completes the scoped Steam setup after Steam exits; an existing FPV SkyDive launch argument is preserved.
 
 ## Verification
 
@@ -23,5 +23,5 @@
 ## Install or update
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.54/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.55/bootstrap.ps1 | iex
 ```

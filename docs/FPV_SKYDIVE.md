@@ -1,6 +1,6 @@
 # FPV SkyDive integration
 
-The installer configures FPV SkyDive's Steam launch option automatically, so the normal **Play** button starts the bridge and game together. Steam must be completely closed while the installer safely updates its own FPV SkyDive entry. If Steam was open, close it and rerun the same installer command; no manual Launch Options copy/paste is required. Existing FPV SkyDive launch arguments are preserved and the uninstaller restores the original setting.
+The installer configures FPV SkyDive's Steam launch option automatically, so the normal **Play** button starts the bridge and game together. If Steam is open, a short-lived one-shot setup worker waits for Steam to exit, then safely updates only its FPV SkyDive entry. No bridge runs while it waits, and no manual Launch Options copy/paste or installer rerun is required. Existing FPV SkyDive launch arguments are preserved and the uninstaller restores the original setting.
 
 Steam supplies `%command%` as the normal game executable and arguments. The wrapper starts the native bridge and waits for its virtual Xbox target before starting the game. FPV SkyDive may hand off from Steam's initial process to its actual game process; the wrapper keeps the bridge alive across that handoff and stops the same bridge process only after the game has been absent for five seconds. The user flow is:
 

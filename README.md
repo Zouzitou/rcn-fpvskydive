@@ -20,7 +20,7 @@
 Open **PowerShell**, paste this, and wait for the orange completion screen:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.54/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.55/bootstrap.ps1 | iex
 ```
 
 ### 2 — Connect
@@ -42,7 +42,7 @@ Click **Play** in Steam. The installer configures FPV SkyDive’s Steam entry to
 
 Choose any Arm, Pause, Restart, or Recover bindings in FPV SkyDive itself.
 
-If Steam was open during installation, close Steam completely and run the same install command once more. This is the only time the installer needs Steam closed; it safely updates the FPV SkyDive launch option and preserves any launch arguments you already use.
+If Steam is open during installation, setup waits in the background and safely updates FPV SkyDive’s launch option the next time Steam closes. You do not need to copy/paste launch options or rerun the installer. Existing FPV SkyDive launch arguments are preserved.
 
 ## Need help?
 
@@ -68,7 +68,7 @@ Press `v` to check stick movement, `l` to launch, or read the [troubleshooting g
 To inspect and build the tagged source locally, install Rust from [rustup.rs](https://rustup.rs), then run:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.54/install-from-source.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.55/install-from-source.ps1 | iex
 ```
 
 Architecture, acceptance evidence, and the hardware test plan live in [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).

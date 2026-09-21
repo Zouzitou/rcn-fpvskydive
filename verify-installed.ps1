@@ -48,6 +48,7 @@ if ($watchers.Count -ne 0) { throw "Wrapper left $($watchers.Count) bridge watch
   startup_mode = $startup.method
   start_menu_launcher = $true
   steam_play_configured = [bool]$steamStatus.configured
+  steam_play_pending = [bool]$steamStatus.pending
   wrapper_exit = 0
   remaining_watchers = $watchers.Count
 } | ConvertTo-Json

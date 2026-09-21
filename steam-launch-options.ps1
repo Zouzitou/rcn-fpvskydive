@@ -1,13 +1,15 @@
 [CmdletBinding()]
 param(
   [ValidateSet('install', 'remove', 'status')][string]$Action = 'install',
-  [string[]]$ConfigPath
+  [string[]]$ConfigPath,
+  [switch]$WaitForSteamExit
 )
 
 $ErrorActionPreference = 'Stop'
 $AppId = '1278060'
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $StatePath = Join-Path $Root 'state\steam-launch-options.json'
+$PendingPath = Join-Path $Root 'state\steam-launch-options-pending.json'
 $WrapperMarker = 'RCN-FPVSkyDive\launch-fpv.cmd'
 $WrapperCommand = 'cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%'
 
@@ -124,8 +126,24 @@ function Remove-LaunchOptions {
 function Write-VdfText { param([string]$Path, [string]$Text, [object]$Encoding) [IO.File]::WriteAllText($Path, $Text, $Encoding) }
 
 if (-not $ConfigPath -and (Get-Process -Name steam -ErrorAction SilentlyContinue)) {
-  if ($Action -eq 'status') { [pscustomobject]@{ configured = $false; detail = 'Steam is running; configuration is not inspected.' } | ConvertTo-Json; exit 0 }
-  throw 'Close Steam completely, then rerun the installer so its Play button can be configured safely.'
+  if ($Action -eq 'status') {
+    $pending = Test-Path -LiteralPath $PendingPath
+    [pscustomobject]@{ configured = $false; pending = $pending; detail = if ($pending) { 'Steam Play setup will finish after Steam exits.' } else { 'Steam is running; Steam Play setup is not yet configured.' } } | ConvertTo-Json
+    exit 0
+  }
+  if ($Action -eq 'remove') { throw 'Close Steam completely, then run uninstall again so the original Steam launch option can be restored safely.' }
+  if (-not $WaitForSteamExit) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $PendingPath) | Out-Null
+    $pending = if (Test-Path -LiteralPath $PendingPath) { Get-Content -LiteralPath $PendingPath -Raw | ConvertFrom-Json } else { $null }
+    $workerAlive = $pending -and $pending.pid -and (Get-Process -Id $pending.pid -ErrorAction SilentlyContinue)
+    if (-not $workerAlive) {
+      $worker = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-Action', 'install', '-WaitForSteamExit') -WindowStyle Hidden -PassThru
+      @{ pid = $worker.Id; state = 'waiting_for_steam_exit'; timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath $PendingPath
+    }
+    [pscustomobject]@{ configured = $false; pending = $true; detail = 'Steam Play setup will finish automatically after Steam exits.' } | ConvertTo-Json
+    exit 0
+  }
+  while (Get-Process -Name steam -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 2 }
 }
 
 $configs = @(Get-ConfigPaths)
@@ -139,7 +157,7 @@ if ($Action -eq 'status') {
       if ($app) { $configured = $configured -or ((Get-LaunchOptions -Text $data.text -AppBlock $app).value -match [regex]::Escape($WrapperMarker)) }
     }
   }
-  [pscustomobject]@{ configured = $configured; config_files = $configs.Count } | ConvertTo-Json
+  [pscustomobject]@{ configured = $configured; pending = (Test-Path -LiteralPath $PendingPath); config_files = $configs.Count } | ConvertTo-Json
   exit 0
 }
 if ($configs.Count -eq 0) { throw 'Steam user configuration was not found. Start Steam once, close it, then rerun the installer.' }
@@ -159,6 +177,7 @@ if ($Action -eq 'install') {
     $saved += [pscustomobject]@{ config_path = $config; had_original = ($null -ne $existing); original_value = if ($existing) { $existing.value } else { '' } }
   }
   if ($saved.Count -gt 0) { @{ app_id = $AppId; entries = $saved; timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $StatePath }
+  Remove-Item -LiteralPath $PendingPath -Force -ErrorAction SilentlyContinue
   [pscustomobject]@{ configured = $true; config_files = $configs.Count } | ConvertTo-Json
   exit 0
 }
