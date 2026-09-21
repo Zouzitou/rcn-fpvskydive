@@ -19,4 +19,4 @@ Run this plan on clean Windows 10 and Windows 11 machines. Record controller mod
 | Login/reboot startup | [ ] | [ ] | [ ] | Exactly one bridge process and health update |
 | Repair and uninstall | [ ] | [ ] | [ ] | Idempotent repair; reversible removal |
 
-RC-N2 and RC-N3 must be recorded as `unsupported pending protocol implementation` unless a separately validated decoder and live-stick test are available. A USB name alone is never compatibility evidence.
+RC-N2 and RC-N3 remain `RC-N family unconfirmed` unless their Protocol interface passes checksum validation and the four-axis live-stick test. A USB name, PID, or successful serial open alone is never compatibility evidence.

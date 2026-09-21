@@ -2,7 +2,7 @@
 
 Safe, per-user Windows bridge for DJI RC-N controllers and FPV SkyDive. It exposes validated controller input as a virtual Xbox 360 controller.
 
-> Status: early production scaffold. RC-N1 USB discovery and core safety primitives are implemented; driver installation, live DuML decoding, ViGEm validation, and RC-N2/RC-N3 protocol support require hardware validation before a release can claim `READY`.
+> Status: early production scaffold. RC-N1 USB discovery and core safety primitives are implemented. A DJI Protocol interface with an unrecognized RC-N-family PID is permitted only through the same checksum-validated, four-axis live-input gate; it is never labeled supported solely from its name or USB vendor. Hardware validation is still required before a release can claim `READY`.
 
 ## Design goals
 

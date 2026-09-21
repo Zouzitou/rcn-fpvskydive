@@ -35,12 +35,15 @@ class Bridge:
                 self.logger.event("waiting_for_controller")
                 self.last_wait_logged_at = now
             return False
-        self.lifecycle.candidate_found(protocol_port=candidate.device, usb_instance_id=candidate.instance_id)
-        self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
+        classification = candidate.proven_model or "RC-N family unconfirmed"
+        self.lifecycle.candidate_found(protocol_port=candidate.device, usb_instance_id=candidate.instance_id,
+                                       controller_model=classification)
+        self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id,
+                          controller_model=classification)
         self.transport = self.transport_factory(candidate)
         result = self.transport.open()
         self.health.write(self.lifecycle.state.value, protocol_port=candidate.device,
-                          usb_instance_id=candidate.instance_id, serial_open=True,
+                          usb_instance_id=candidate.instance_id, controller_model=classification, serial_open=True,
                           packet_count=self.packet_count, valid_frame_count=self.valid_frame_count)
         if hasattr(self.transport, "write"):
             self.transport.write(build_enable_simulator())

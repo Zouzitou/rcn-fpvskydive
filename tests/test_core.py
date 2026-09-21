@@ -14,8 +14,12 @@ def test_unknown_usb_is_not_accepted():
 
 def test_model_classification_does_not_overclaim():
     assert classify_usb("2CA3", "1020")["status"] == "supported"
-    assert classify_usb("2CA3", "1021")["status"].startswith("unsupported")
+    assert classify_usb("2CA3", "1021")["status"].startswith("requires Protocol")
     assert classify_usb("FFFF", "0001")["status"] == "unknown device"
+
+def test_unconfirmed_dji_protocol_candidate_can_only_proceed_to_live_verification():
+    candidate = PortCandidate("COM9", "DJI USB VCOM For Protocol", "2CA3", "1021", "MI_02")
+    assert choose_candidate([candidate]) == candidate and candidate.proven_model is None
 
 def test_bad_checksum_rejected():
     b = bytearray(encode(b"abc")); b[-1] ^= 1

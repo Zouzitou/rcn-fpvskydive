@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
-SUPPORTED = {"RC-N1": {("2CA3", "1020")}, "RC-N2": set(), "RC-N3": set()}
-KNOWN_UNSUPPORTED = {"RC-N2": {("2CA3", "1021")}, "RC-N3": set()}
+SUPPORTED = {"RC-N1": {("2CA3", "1020")}}
+DJI_VENDOR_ID = "2CA3"
 
 @dataclass(frozen=True)
 class PortCandidate:
@@ -24,13 +24,16 @@ class PortCandidate:
 
     @property
     def supported_usb(self):
-        return ((self.vid or "").upper(), (self.pid or "").upper()) in {
-            pair for pairs in SUPPORTED.values() for pair in pairs
-        }
+        return (self.vid or "").upper() == DJI_VENDOR_ID and self.is_protocol and not self.is_debug
+
+    @property
+    def proven_model(self):
+        identity = ((self.vid or "").upper(), (self.pid or "").upper())
+        return next((model for model, identities in SUPPORTED.items() if identity in identities), None)
 
 def rank_candidates(candidates: Iterable[PortCandidate]):
     valid = [c for c in candidates if c.supported_usb and c.is_protocol and not c.is_debug]
-    return sorted(valid, key=lambda c: (c.controller or "ZZZ", c.description.lower(), c.device.lower(), c.instance_id.lower()))
+    return sorted(valid, key=lambda c: (c.proven_model is None, c.controller or "ZZZ", c.description.lower(), c.device.lower(), c.instance_id.lower()))
 
 def choose_candidate(candidates: Iterable[PortCandidate]):
     ranked = rank_candidates(candidates)
@@ -40,8 +43,8 @@ def classify_usb(vid, pid):
     identity = ((vid or "").upper(), (pid or "").upper())
     for model, identities in SUPPORTED.items():
         if identity in identities: return {"model": model, "status": "supported"}
-    for model, identities in KNOWN_UNSUPPORTED.items():
-        if identity in identities: return {"model": model, "status": "unsupported pending protocol implementation"}
+    if identity[0] == DJI_VENDOR_ID:
+        return {"model": "RC-N family unconfirmed", "status": "requires Protocol port and live input verification"}
     return {"model": None, "status": "unknown device"}
 
 def enumerate_protocol_ports():
