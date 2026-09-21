@@ -21,3 +21,7 @@ A PowerShell/.NET `SerialPort` probe, rather than Python, opened COM12 at 115200
 | Left horizontal | 364 | 1684 | Yes |
 
 This validates the selected RC-N1 Protocol interface, the simulator-enable/poll request sequence, the 38-byte response layout, and the four stick offsets used by the bridge. It does not validate the Python runtime, ViGEm virtual-controller creation, automatic startup, or a released installer; those remain separate release gates.
+
+## Virtual-controller host prerequisite
+
+Windows reports `Nefarius Virtual Gamepad Emulation Bus` present and `OK`. That confirms the host bus is installed, but it is not a substitute for the bridge's non-destructive `vgamepad` create/update/release self-test.
