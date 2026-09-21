@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.56
+# RCN FPV SkyDive v0.1.57
 
 ## Highlights
 
@@ -6,6 +6,7 @@
 - It refers to your DJI RC-N controller naturally instead of leading with implementation and model-status detail.
 - The installer now configures FPV SkyDive’s normal Steam Play button to start the bridge automatically.
 - The README now uses shareable “latest installer” commands, so a command posted today installs the current release later too.
+- The project is now explicitly licensed under GNU AGPLv3.
 - The release-note template and mandatory release-note checks remain in place for every future release.
 
 ## Flight notes

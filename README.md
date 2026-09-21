@@ -3,6 +3,7 @@
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Latest release](https://img.shields.io/github/v/release/Zouzitou/rcn-fpvskydive?display_name=tag&logo=github)](https://github.com/Zouzitou/rcn-fpvskydive/releases)
 [![Rust](https://img.shields.io/badge/runtime-Rust-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-3DA639.svg)](LICENSE)
 [![No login startup](https://img.shields.io/badge/bridge-game--only-ff8c00)](README.md#fly)
 
 ### Turn your DJI RC-N controller into an Xbox controller for FPV SkyDive.
@@ -62,6 +63,10 @@ Press `v` to check stick movement, `l` to launch, or read the [troubleshooting g
 | Sends neutral sticks on disconnect or exit | Leave a stuck input behind |
 | Verifies the downloaded release before installing | Print your Windows username during install |
 | Keeps your game bindings under your control | Change settings behind your back |
+
+## License
+
+RCN FPV SkyDive is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 ## Curious pilot / developer
 

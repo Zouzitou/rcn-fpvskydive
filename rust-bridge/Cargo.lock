@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "rcn-bridge"
-version = "0.1.56"
+version = "0.1.57"
 dependencies = [
  "crossterm",
  "ratatui",
