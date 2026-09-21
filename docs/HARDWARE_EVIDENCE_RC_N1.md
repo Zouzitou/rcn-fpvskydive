@@ -20,8 +20,10 @@ A PowerShell/.NET `SerialPort` probe, rather than Python, opened COM12 at 115200
 | Left vertical | 364 | 1406 | Yes |
 | Left horizontal | 364 | 1684 | Yes |
 
-This validates the selected RC-N1 Protocol interface, the simulator-enable/poll request sequence, the 38-byte response layout, and the four stick offsets used by the bridge. It does not validate the Python runtime, ViGEm virtual-controller creation, automatic startup, or a released installer; those remain separate release gates.
+This validates the selected RC-N1 Protocol interface, the simulator-enable/poll request sequence, the 38-byte response layout, and the four stick offsets used by the bridge.
 
 ## Virtual-controller host prerequisite
 
-Windows reports `Nefarius Virtual Gamepad Emulation Bus` present and `OK`. That confirms the host bus is installed, but it is not a substitute for the bridge's non-destructive `vgamepad` create/update/release self-test.
+Windows reports `Nefarius Virtual Gamepad Emulation Bus` present and `OK`. The native Rust bridge's 2026-09-21 self-test created a ViGEm Xbox 360 target, applied a temporary left-axis value, explicitly sent neutral output, and exited successfully. Its two-second `bridge-smoke` test then mapped 97 validated COM12 stick frames through that target and again sent neutral output before exit.
+
+This proves the native protocol-to-virtual-controller path on this host. Automatic startup, a released installer, FPV SkyDive calibration, reconnect/sleep behavior, and clean-machine validation remain separate release gates.

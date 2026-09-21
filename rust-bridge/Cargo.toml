@@ -1,0 +1,11 @@
+[package]
+name = "rcn-bridge"
+version = "0.1.17"
+edition = "2024"
+license = "MIT"
+description = "Native Windows DJI RC-N Protocol-to-Xbox bridge"
+
+[dependencies]
+serialport = "=4.8.1"
+thiserror = "=2.0.17"
+vigem-rust = "=0.2.0"

@@ -8,30 +8,28 @@ The product is a per-user Windows application installed below `%LOCALAPPDATA%\\R
 
 ```text
 bootstrap.ps1
-  -> signed/release-pinned artifact + SHA-256 verification
-  -> app/installer (state machine, elevation boundary, repair/uninstall)
-  -> app/bridge (long-lived process)
+  -> release-pinned artifact + SHA-256 verification
+  -> bin/rcn-bridge.exe (native Rust runtime)
+  -> startup.ps1 (per-user login registration)
+  -> rcn-bridge watch (long-lived process)
        discovery -> transport -> protocol -> mapping -> gamepad
               \________________ lifecycle / diagnostics ________________/
 ```
 
-- `discovery`: SetupAPI/WMI and `serial.tools.list_ports`; ranks only positively identified DJI-compatible Protocol interfaces and records hardware instance IDs.
+- `discovery`: a bounded WMI query accepts only the RC-N1 (`VID_2CA3&PID_1020`) healthy `For Protocol` interface; Debug interfaces and unvalidated RC-N-family PIDs are not activated.
 - `transport`: opens and owns the selected Protocol COM port, detects busy/debug/wrong-port states, and emits reconnect events.
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
-- `mapping`: calibration, center trim, dead zone, saturation, inversion, response curves, and explicit transmitter-mode profiles.
-- `gamepad`: ViGEm/vgamepad adapter with neutral-on-start, neutral-on-error, button release, and non-destructive self-test guarantees.
-- `lifecycle`: single-instance guard, startup idle state, device hotplug/reconnect, suspend/resume recovery, watchdog backoff, and shutdown cleanup.
-- `diagnostics`: structured JSONL logs, redacted report generation, health state, and human-readable exit categories.
+- `mapping`: the established RC-N1 Mode 2 four-axis mapping with all buttons left clear.
+- `gamepad`: native ViGEm adapter with neutral-on-start, neutral-on-smoke-test exit, and target removal when a session ends.
+- `lifecycle`: a per-user scheduled-task/Startup-folder launcher starts `watch`, which rediscovers after serial failure or unplug/replug.
 
 ## Data flow
 
 1. The bridge starts neutral and enters `WAITING_FOR_CONTROLLER`.
 2. Discovery scans USB/PnP state and ranks Protocol candidates deterministically. Debug interfaces are never accepted as setup success.
 3. Transport opens the selected port and protocol validates frames. A port is not considered connected until valid live frames arrive.
-4. A guided verifier asks for movement of each configured axis and requires plausible changing values.
-5. Mapping transforms calibrated DJI values into Xbox 360 axes; output is rate-limited and remains neutral when frames become stale.
-6. Lifecycle monitors unplug/replug, COM-number changes, sleep/resume, process ownership, and gamepad health.
-7. Diagnostics persist selected port, instance ID, driver evidence, packet/frame counters, PID, and current state with usernames and absolute paths redacted in exports.
+4. Mapping transforms checksum-validated RC-N1 frames into Xbox 360 axes; output is neutral before the first valid frame.
+5. Lifecycle drops the virtual target on an I/O failure, then rediscovers the Protocol interface after a short delay.
 
 ## Installer state machine
 

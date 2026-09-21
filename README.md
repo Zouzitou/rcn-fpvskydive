@@ -2,23 +2,24 @@
 
 Safe, per-user Windows bridge for DJI RC-N controllers and FPV SkyDive. It exposes validated controller input as a virtual Xbox 360 controller.
 
-> Status: early production scaffold. RC-N1 USB discovery and core safety primitives are implemented. A DJI Protocol interface with an unrecognized RC-N-family PID is permitted only through the same checksum-validated, four-axis live-input gate; it is never labeled supported solely from its name or USB vendor. Hardware validation is still required before a release can claim `READY`.
+> Native runtime: [`rust-bridge/`](rust-bridge/) is the production bridge. The installer ships its locally built `rcn-bridge.exe`; it does not require Python, pip, or pytest.
+
+> Status: RC-N1 is the validated native implementation. RC-N2 and RC-N3 are intentionally not activated until their Protocol interface and frame layout have independent hardware evidence; a name or USB vendor alone is not compatibility evidence.
 
 ## Design goals
 
 - One PowerShell bootstrapper, isolated under `%LOCALAPPDATA%\\RCN-FPVSkyDive`.
 - Protocol-port selection by positive USB/interface evidence; Debug ports are rejected.
 - Neutral output on startup, stale data, reconnect, shutdown, and failed self-test.
-- Pinned dependencies, structured diagnostics, idempotent repair, and explicit unsupported states.
+- A locally built, SHA-256 verified native executable with no Python runtime dependency.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Development
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.lock
-.\.venv\Scripts\python.exe -m pytest -q
+cargo test --manifest-path rust-bridge/Cargo.toml
+cargo build --release --manifest-path rust-bridge/Cargo.toml
 ```
 
 ## Installation
@@ -26,7 +27,7 @@ py -m venv .venv
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.16/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.17/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
@@ -34,43 +35,21 @@ The tagged bootstrapper downloads the release payload and verifies its SHA-256 b
 ## Commands
 
 ```powershell
-rcn-fpv status
-rcn-fpv diagnose
-rcn-fpv start
-rcn-fpv stop
-rcn-fpv repair
-rcn-fpv uninstall
-rcn-fpv driver-install --inf "$env:LOCALAPPDATA\RCN-FPVSkyDive\drivers\dji-vcom.inf"
-rcn-fpv open-game
-rcn-fpv calibrate
+$Bridge = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive\bin\rcn-bridge.exe'
+& $Bridge self-test
+& $Bridge probe --port COM12
+& $Bridge bridge-smoke --port COM12
+& $Bridge bridge-auto
 ```
 
-The installed uninstaller is also available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
+`watch` is registered for login by the installer. It waits safely for the RC-N1 Protocol interface, reconnects after a disconnect, and removes the virtual controller whenever its active bridge session ends. `bridge-auto` is the interactive foreground command; end it with `Ctrl+C` after game calibration.
 
-Mode 2 is the default (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Select Mode 1 or adjust a specific virtual axis without editing files by hand:
+The installed uninstaller is available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
 
-```powershell
-rcn-fpv config
-rcn-fpv config --mode mode1
-rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
-```
+## Driver and game setup
 
-`rcn-fpv repair` restores the managed local package and current-user startup registration. It does not install or replace device drivers. If the managed environment itself is missing, rerun the release-pinned bootstrap command.
-
-Startup registration immediately checks for exactly one managed bridge watchdog and records the result in `%LOCALAPPDATA%\RCN-FPVSkyDive\state\startup.json`. A failed check is reported as a warning rather than pretending setup is ready.
-
-`rcn-fpv driver-install` displays a UAC prompt and accepts only an existing `.inf` from the managed `drivers` folder. Put a verified official DJI driver package there first. The command rechecks that the active driver is DJI-provided, signed, Ports-class, and matches the RC-N1 hardware before it reports success.
-
-`rcn-fpv open-game` opens the detected FPV SkyDive installation through Steam. It never changes the game’s bindings; use the game’s normal calibration screen after the virtual controller is confirmed.
-
-`rcn-fpv calibrate` shows the next physical stick movement required by the bridge’s live-input verifier, plus the currently observed axes. Once all four axes are verified, it directs you to FPV SkyDive’s normal controller calibration screen and leaves game bindings untouched.
-
-The bridge records a separate 10-second live-frame stability gate after all four axes verify. A connected state without `stability_verified: true` is not a ready setup.
-
-`rcn-fpv status` is deliberately conservative: it says `ready: true` only when the managed virtual Xbox self-test, Protocol port, live-axis verification, stability interval, and current bridge process are all present.
-
-The most recently selected controller identity is retained at `%LOCALAPPDATA%\RCN-FPVSkyDive\state\device.json`, so a later reconnect can be diagnosed even when Windows assigns a different COM number.
+Mode 2 is the native mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The bridge accepts only the RC-N1 `VID_2CA3&PID_1020` Protocol interface and never uses its Debug COM port. After `self-test` and `bridge-smoke` succeed, open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
 
 ## Security
 
-Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.
+The installer is per-user, release-pinned, and SHA-256 verified. It never installs drivers or edits FPV SkyDive settings; use an official DJI driver package and the game’s own calibration UI.

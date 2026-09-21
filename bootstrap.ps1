@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.16/rcn-fpvskydive-v0.1.16.zip'
-$ExpectedSha256 = '97E061E5D0B0EF01CA8CAB0D2AFFE26D6AF1C8897290B6B9FCDA13DDC4137473'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.17/rcn-fpvskydive-v0.1.17.zip'
+$ExpectedSha256 = '7F85184C0AC73EA78E8B32D5A43EE2A1EE67C355EF4D7A3EFCF7F89009A6585B'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -15,19 +15,17 @@ if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $SourceRoot = $FetchRoot
 }
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
-$App = Join-Path $Root 'app'
-New-Item -ItemType Directory -Force -Path $App,(Join-Path $Root '.venv'),(Join-Path $Root 'drivers'),(Join-Path $Root 'logs'),(Join-Path $Root 'state') | Out-Null
+$Bin = Join-Path $Root 'bin'
+$Bridge = Join-Path $Bin 'rcn-bridge.exe'
+New-Item -ItemType Directory -Force -Path $Bin,(Join-Path $Root 'drivers'),(Join-Path $Root 'logs'),(Join-Path $Root 'state') | Out-Null
 Write-Host "RCN FPV SkyDive installer: preparing per-user environment at $Root"
-if (-not (Get-Command py -ErrorAction SilentlyContinue)) { throw 'Python 3.9+ is required. Install it from python.org and rerun.' }
-py -3 -m venv (Join-Path $Root '.venv')
-$Py = Join-Path $Root '.venv\Scripts\python.exe'
-& $Py -m pip install --disable-pip-version-check -r (Join-Path $SourceRoot 'requirements.lock')
-Copy-Item -Recurse -Force (Join-Path $SourceRoot 'src') $App
-Copy-Item -Force (Join-Path $SourceRoot 'pyproject.toml') $App
+Copy-Item -Force (Join-Path $SourceRoot 'bin\rcn-bridge.exe') $Bridge
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
-& $Py -m pip install --disable-pip-version-check --no-deps --no-build-isolation $App
-$PackageVersion = (& $Py -c "import rcn_fpv; print(rcn_fpv.__version__)").Trim()
-@{ state='installed'; version=$PackageVersion; timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
+if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Verified release payload did not contain rcn-bridge.exe.' }
+$SelfTest = & $Bridge self-test 2>&1
+$SelfTestPassed = $LASTEXITCODE -eq 0
+@{ state='installed'; runtime='native-rust'; gamepad_self_test=$SelfTestPassed; self_test_output=($SelfTest -join "`n"); timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
-Write-Host 'Environment prepared. Hardware/driver validation remains required before READY.'
+if (-not $SelfTestPassed) { Write-Warning 'Native virtual-controller self-test failed. Check the ViGEmBus installation before controller use.' }
+Write-Host 'Native environment prepared. Hardware/driver validation remains required before READY.'

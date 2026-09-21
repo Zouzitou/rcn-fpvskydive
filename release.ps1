@@ -22,15 +22,18 @@ function New-DeterministicZip {
     }
   } finally { $archive.Dispose(); $stream.Dispose() }
 }
-$init = Get-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Raw
-$init = [regex]::Replace($init, '__version__ = "[0-9.]+"', "__version__ = `"$($tag.TrimStart('v'))`"")
-Set-Content -LiteralPath 'src/rcn_fpv/__init__.py' -Value $init -NoNewline
-$project = Get-Content -LiteralPath 'pyproject.toml' -Raw
-$project = [regex]::Replace($project, '(?m)^version = "[0-9.]+"$', "version = `"$($tag.TrimStart('v'))`"")
-Set-Content -LiteralPath 'pyproject.toml' -Value $project -NoNewline
+$cargo = Get-Content -LiteralPath 'rust-bridge/Cargo.toml' -Raw
+$cargo = [regex]::Replace($cargo, '(?m)^version = "[0-9.]+"$', "version = `"$($tag.TrimStart('v'))`"")
+Set-Content -LiteralPath 'rust-bridge/Cargo.toml' -Value $cargo -NoNewline
 & .\verify-scripts.ps1
-py -m pytest -q
-$items = @('src','tests','docs','pyproject.toml','requirements.lock','release.ps1','verify-release.ps1','verify-scripts.ps1','startup.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+cargo test --manifest-path rust-bridge\Cargo.toml
+cargo build --release --manifest-path rust-bridge\Cargo.toml
+$bridge = 'rust-bridge\target\release\rcn-bridge.exe'
+& $bridge self-test
+if ($LASTEXITCODE -ne 0) { throw 'Native virtual-controller self-test failed; release cancelled.' }
+New-Item -ItemType Directory -Force -Path (Join-Path $payload 'bin') | Out-Null
+Copy-Item -LiteralPath $bridge -Destination (Join-Path $payload 'bin\rcn-bridge.exe') -Force
+$items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','startup.ps1','uninstall.ps1','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
 foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $payload -Recurse -Force }
 New-DeterministicZip -Source $payload -Destination $zip
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash

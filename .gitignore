@@ -10,3 +10,4 @@ release/
 release-next/
 release-*
 .build-check/
+rust-bridge/target/
