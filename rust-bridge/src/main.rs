@@ -8,11 +8,12 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     process::Command,
+    sync::mpsc,
     thread,
     time::{Duration, Instant},
 };
 use thiserror::Error;
-use vigem_rust::{Client, ClientError, X360Report};
+use vigem_rust::{BusError, Client, ClientError, Ready, TargetHandle, Xbox360, X360Report};
 use windows::Win32::Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HANDLE};
 use windows::Win32::System::Threading::CreateMutexW;
 use windows::core::w;
@@ -634,21 +635,31 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
     ];
     let mut results = Vec::new();
     for (name, axis_index) in axes {
-        print!("Move {name} through its range, then press Enter: ");
+        print!("Move {name} through its range while this prompt is waiting, then press Enter: ");
         std::io::stdout().flush()?;
-        let mut response = String::new();
-        std::io::stdin().read_line(&mut response)?;
-        let start = Instant::now();
         let mut minimum = stick_axis(baseline, axis_index);
         let mut maximum = minimum;
-        while start.elapsed() < Duration::from_secs(3) {
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let input_thread = thread::spawn(move || {
+            let mut response = String::new();
+            let result = std::io::stdin().read_line(&mut response);
+            let _ = entered_tx.send(result);
+        });
+        loop {
             if let Some(frame) = sample_frame(&mut *serial, &mut buffer, &mut chunk)? {
                 let value = stick_axis(frame, axis_index);
                 minimum = minimum.min(value);
                 maximum = maximum.max(value);
             }
+            if let Ok(result) = entered_rx.try_recv() {
+                result?;
+                break;
+            }
             thread::sleep(Duration::from_millis(20));
         }
+        input_thread
+            .join()
+            .map_err(|_| std::io::Error::other("input verification thread panicked"))?;
         let changed = maximum.saturating_sub(minimum) >= 100;
         results.push((name, minimum, maximum, changed));
     }
@@ -694,7 +705,7 @@ fn discover_protocol_port() -> Option<String> {
 
 fn self_test_gamepad() -> Result<(), BridgeError> {
     let client = Client::connect()?;
-    let target = client.new_x360_target().plug()?.wait_for_ready()?;
+    let target = new_ready_target(&client)?;
     let pulse = X360Report {
         thumb_lx: 4_096,
         ..Default::default()
@@ -703,6 +714,25 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
     target.update(&X360Report::default())?;
     println!("{{\"virtual_gamepad_test\":\"passed\",\"cleanup\":\"neutral update sent\"}}");
     Ok(())
+}
+
+fn new_ready_target(client: &Client) -> Result<TargetHandle<Xbox360, Ready>, BridgeError> {
+    let mut last_error = None;
+    for attempt in 0..10 {
+        match client.new_x360_target().plug()?.wait_for_ready() {
+            Ok(target) => return Ok(target),
+            Err(error @ ClientError::Bus(BusError::TargetNotReady { .. }))
+                if attempt + 1 < 10 =>
+            {
+                last_error = Some(error);
+                thread::sleep(Duration::from_millis(100));
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Err(last_error
+        .expect("retry loop must record the transient target error")
+        .into())
 }
 
 fn run_bridge(
@@ -733,7 +763,7 @@ fn run_bridge(
         return Err(BridgeError::NoLiveFrames);
     }
     let client = Client::connect()?;
-    let target = client.new_x360_target().plug()?.wait_for_ready()?;
+    let target = new_ready_target(&client)?;
     let neutral = X360Report::default();
     target.update(&neutral)?;
     let mut mapped_frames = 0;
