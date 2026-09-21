@@ -2,14 +2,14 @@
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.49/rcn-fpvskydive-v0.1.49.zip'
-$ExpectedSha256 = '7E16379AEC364573C7B14DAD9D9FCC7B5224C34C6A675FC296A3F5CA00F621A9'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.50/rcn-fpvskydive-v0.1.50.zip'
+$ExpectedSha256 = '7C9FA127D112B2D4B86A6AC8B5BBB491E9DF3C174EB081D8A1CEF8024238F74A'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Force -Path $FetchRoot | Out-Null
   $Archive = Join-Path $FetchRoot 'release.zip'
-  Write-Host "`e[38;5;208m  RCN FPV SKYDIVE  •  Fetching verified release…`e[0m"
+  Write-Host '  RCN FPV SKYDIVE  •  Fetching verified release…' -ForegroundColor DarkYellow
   Invoke-WebRequest -Uri $ReleaseUrl -OutFile $Archive
   $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash
   if ($ActualSha256 -ne $ExpectedSha256) { throw 'Release verification failed. Nothing was installed.' }
