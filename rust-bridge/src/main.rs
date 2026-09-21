@@ -20,7 +20,7 @@ use windows::core::w;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | self-test | verify-input --port COM12 | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | open-fpv | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -307,6 +307,8 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
         .unwrap_or_else(|_| "not_registered".to_string());
     let device =
         fs::read_to_string(device_state_path()).unwrap_or_else(|_| "not_persisted".to_string());
+    let verification = fs::read_to_string(verification_state_path())
+        .unwrap_or_else(|_| "not_verified".to_string());
     let protocol_port = discover_protocol_port();
     let live_frames = protocol_port.as_deref().map(probe_live_frames).transpose();
     let processes_output = run_powershell(
@@ -391,6 +393,14 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
             redact_text(&game_path)
         } else {
             game_path
+        }
+    );
+    println!(
+        "input verification: {}",
+        if redact {
+            redact_text(&verification)
+        } else {
+            verification
         }
     );
     println!("bridge processes:");
@@ -518,6 +528,15 @@ fn port_from_args() -> Result<String, BridgeError> {
         return Err(BridgeError::Usage);
     }
     args.next().ok_or(BridgeError::Usage)
+}
+
+fn verification_port_from_args() -> Result<String, BridgeError> {
+    let mut args = env::args().skip(2);
+    match args.next().as_deref() {
+        None => discover_protocol_port().ok_or(BridgeError::NoProtocolPort),
+        Some("--port") => args.next().ok_or(BridgeError::Usage),
+        Some(_) => Err(BridgeError::Usage),
+    }
 }
 
 fn connect(port: &str) -> Result<Box<dyn serialport::SerialPort>, BridgeError> {
@@ -809,7 +828,7 @@ fn main() -> Result<(), BridgeError> {
         return self_test_gamepad();
     }
     if command == "verify-input" {
-        let port = port_from_args()?;
+        let port = verification_port_from_args()?;
         return verify_live_input(&port);
     }
     if command == "watch" {
