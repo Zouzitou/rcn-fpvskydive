@@ -4,8 +4,9 @@ mod protocol;
 use mapping::mode2;
 use protocol::{drain_frames, enable_simulator, parse_sticks, read_sticks};
 use std::{
-    env,
+    env, fs,
     io::{Read, Write},
+    path::PathBuf,
     process::Command,
     thread,
     time::{Duration, Instant},
@@ -16,7 +17,7 @@ use vigem_rust::{Client, ClientError, X360Report};
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -29,6 +30,52 @@ enum BridgeError {
     Io(#[from] std::io::Error),
     #[error("ViGEm error: {0}")]
     Vigem(#[from] ClientError),
+}
+
+fn status_path() -> PathBuf {
+    let root = env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    root.join("RCN-FPVSkyDive")
+        .join("state")
+        .join("bridge.json")
+}
+
+fn escape_json(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn publish_status(state: &str, port: Option<&str>, mapped_frames: usize, detail: Option<&str>) {
+    let path = status_path();
+    let Some(parent) = path.parent() else { return };
+    if fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let port = port
+        .map(|port| format!("\"{}\"", escape_json(port)))
+        .unwrap_or_else(|| "null".to_string());
+    let detail = detail
+        .map(|detail| format!("\"{}\"", escape_json(detail)))
+        .unwrap_or_else(|| "null".to_string());
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|time| time.as_secs())
+        .unwrap_or(0);
+    let json = format!(
+        "{{\"state\":\"{}\",\"port\":{},\"mapped_frames\":{},\"detail\":{},\"updated_unix\":{}}}",
+        escape_json(state),
+        port,
+        mapped_frames,
+        detail,
+        timestamp
+    );
+    let _ = fs::write(path, json);
+}
+
+fn print_status() {
+    let status = fs::read_to_string(status_path())
+        .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
+    println!("{status}");
 }
 
 fn port_from_args() -> Result<String, BridgeError> {
@@ -78,6 +125,7 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
 }
 
 fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeError> {
+    publish_status("connecting", Some(port), 0, None);
     let mut serial = connect(port)?;
     let client = Client::connect()?;
     let target = client.new_x360_target().plug()?.wait_for_ready()?;
@@ -87,6 +135,7 @@ fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeErr
     let mut buffer = Vec::new();
     let mut chunk = [0u8; 4096];
     let mut mapped_frames = 0;
+    let mut last_status = Instant::now();
     loop {
         serial.write_all(&read_sticks())?;
         if let Ok(count) = serial.read(&mut chunk) {
@@ -106,11 +155,22 @@ fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeErr
                 mapped_frames += 1;
             }
         }
+        if last_status.elapsed() >= Duration::from_secs(1) {
+            publish_status("connected", Some(port), mapped_frames, None);
+            last_status = Instant::now();
+        }
         if deadline.is_some_and(|time| Instant::now() >= time) {
             target.update(&neutral)?;
             if mapped_frames == 0 {
+                publish_status("no_live_input", Some(port), 0, None);
                 return Err(BridgeError::NoLiveFrames);
             }
+            publish_status(
+                "stopped",
+                Some(port),
+                mapped_frames,
+                Some("smoke test completed"),
+            );
             return Ok(mapped_frames);
         }
         thread::sleep(Duration::from_millis(20));
@@ -121,12 +181,17 @@ fn watch() -> Result<(), BridgeError> {
     loop {
         match discover_protocol_port() {
             Some(port) => {
+                publish_status("connecting", Some(&port), 0, None);
                 eprintln!("RCN bridge: using {port}");
                 if let Err(error) = run_bridge(&port, None) {
+                    publish_status("waiting_for_controller", None, 0, Some(&error.to_string()));
                     eprintln!("RCN bridge: disconnected or unavailable: {error}");
                 }
             }
-            None => eprintln!("RCN bridge: waiting for a healthy DJI Protocol interface"),
+            None => {
+                publish_status("waiting_for_controller", None, 0, None);
+                eprintln!("RCN bridge: waiting for a healthy DJI Protocol interface");
+            }
         }
         thread::sleep(Duration::from_secs(1));
     }
@@ -134,6 +199,10 @@ fn watch() -> Result<(), BridgeError> {
 
 fn main() -> Result<(), BridgeError> {
     let command = env::args().nth(1).ok_or(BridgeError::Usage)?;
+    if command == "status" {
+        print_status();
+        return Ok(());
+    }
     if command == "self-test" {
         return self_test_gamepad();
     }
@@ -181,4 +250,14 @@ fn main() -> Result<(), BridgeError> {
         );
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod status_tests {
+    use super::escape_json;
+
+    #[test]
+    fn escapes_status_text_for_json() {
+        assert_eq!(escape_json("COM12 \"busy\""), "COM12 \\\"busy\\\"");
+    }
 }
