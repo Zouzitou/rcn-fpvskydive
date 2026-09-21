@@ -27,7 +27,10 @@ def installed_games(library_root: Path):
         except OSError: continue
         name = re.search(r'"name"\s+"([^"]+)"', text, re.I)
         install = re.search(r'"installdir"\s+"([^"]+)"', text, re.I)
-        if name and install: games.append({"name": name.group(1), "path": str(manifest_dir / "common" / install.group(1))})
+        app_id = re.search(r"appmanifest_(\d+)\.acf$", manifest.name, re.I)
+        if name and install and app_id:
+            games.append({"name": name.group(1), "app_id": app_id.group(1),
+                          "path": str(manifest_dir / "common" / install.group(1))})
     return games
 
 def find_fpv_skydive(library_roots, name="FPV.SkyDive"):
@@ -37,3 +40,13 @@ def find_fpv_skydive(library_roots, name="FPV.SkyDive"):
             if name.lower().replace(" ", "") in game["name"].lower().replace(" ", ""):
                 matches.append(game)
     return matches
+
+def launch_fpv_skydive(library_roots, opener=None):
+    """Open the installed game through Steam only after an explicit CLI request."""
+    games = find_fpv_skydive(library_roots)
+    if not games:
+        raise FileNotFoundError("FPV SkyDive was not found in the configured Steam libraries")
+    game = sorted(games, key=lambda item: (item["name"].lower(), item["path"].lower()))[0]
+    uri = "steam://rungameid/" + game["app_id"]
+    (opener or os.startfile)(uri)
+    return {"name": game["name"], "app_id": game["app_id"], "launch_uri": uri}

@@ -41,6 +41,7 @@ rcn-fpv stop
 rcn-fpv repair
 rcn-fpv uninstall
 rcn-fpv driver-install --inf "$env:LOCALAPPDATA\RCN-FPVSkyDive\drivers\dji-vcom.inf"
+rcn-fpv open-game
 ```
 
 The installed uninstaller is also available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`.
@@ -57,6 +58,8 @@ rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
 Startup registration immediately checks for exactly one managed bridge watchdog and records the result in `%LOCALAPPDATA%\RCN-FPVSkyDive\state\startup.json`. A failed check is reported as a warning rather than pretending setup is ready.
 
 `rcn-fpv driver-install` displays a UAC prompt and accepts only an existing `.inf` from the managed `drivers` folder. Put a verified official DJI driver package there first. The command rechecks that the active driver is DJI-provided, signed, Ports-class, and matches the RC-N1 hardware before it reports success.
+
+`rcn-fpv open-game` opens the detected FPV SkyDive installation through Steam. It never changes the game’s bindings; use the game’s normal calibration screen after the virtual controller is confirmed.
 
 ## Security
 

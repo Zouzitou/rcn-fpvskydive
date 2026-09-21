@@ -5,12 +5,13 @@ from .diagnostics import report
 from .driver import DriverInstallError, install_managed_driver
 from .discovery import choose_candidate, enumerate_protocol_ports
 from .config import AXIS_NAMES, load_config, save_config
+from .steam import launch_fpv_skydive, steam_library_roots
 
 ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RCN-FPVSkyDive"
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rcn-fpv", description="DJI RC-N bridge for FPV SkyDive")
-    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config", "driver-install"])
+    p.add_argument("command", choices=["status", "diagnose", "start", "stop", "repair", "uninstall", "config", "driver-install", "open-game"])
     p.add_argument("--inf", type=Path, help="Official DJI INF placed under the managed drivers folder")
     p.add_argument("--mode", choices=["mode1", "mode2"])
     p.add_argument("--axis", choices=AXIS_NAMES)
@@ -59,6 +60,13 @@ def main(argv=None):
             return 2
         print(json.dumps({"provider": evidence.provider, "version": evidence.version, "status": "verified installed"}))
         return 0
+    if args.command == "open-game":
+        try:
+            print(json.dumps(launch_fpv_skydive(steam_library_roots())))
+            return 0
+        except (FileNotFoundError, OSError) as exc:
+            print(f"open-game failed safely: {exc}", file=sys.stderr)
+            return 2
     if args.command == "start":
         try:
             (ROOT / "state" / "stop.request").unlink(missing_ok=True)
