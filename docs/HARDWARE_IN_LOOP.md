@@ -21,4 +21,4 @@ An initial RC-N1 native serial capture and native virtual-controller smoke test 
 | Steam game launch/exit | [ ] | [ ] | [ ] | Exactly one bridge while playing; none after game exit |
 | Repair and uninstall | [ ] | [ ] | [ ] | Idempotent repair; reversible removal |
 
-RC-N2 and RC-N3 remain `RC-N family unconfirmed` unless their Protocol interface passes checksum validation and the four-axis live-stick test. A USB name, PID, or successful serial open alone is never compatibility evidence.
+RC-N2 and RC-N3 remain `RC-N family unconfirmed` unless their Protocol interface passes the native three-frame checksum gate and the four-axis live-stick test. A USB name, PID, or successful serial open alone is never compatibility evidence.

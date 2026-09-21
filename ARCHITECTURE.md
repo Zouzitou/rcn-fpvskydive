@@ -16,7 +16,7 @@ bootstrap.ps1
               \________________ lifecycle / diagnostics ________________/
 ```
 
-- `discovery`: a bounded WMI query accepts only the RC-N1 (`VID_2CA3&PID_1020`) healthy `For Protocol` interface; Debug interfaces and unvalidated RC-N-family PIDs are not activated.
+- `discovery`: a bounded WMI query finds healthy DJI `For Protocol` interfaces. Every candidate, including RC-N2/RC-N3, must yield three checksum-valid 38-byte live-stick frames before the Xbox target is created; Debug interfaces are never activated.
 - `transport`: opens and owns the selected Protocol COM port, detects busy/debug/wrong-port states, and emits reconnect events.
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with all buttons left clear.
@@ -27,7 +27,7 @@ bootstrap.ps1
 
 1. The bridge starts neutral and enters `WAITING_FOR_CONTROLLER`.
 2. Discovery scans USB/PnP state and ranks Protocol candidates deterministically. Debug interfaces are never accepted as setup success.
-3. Transport opens the selected port and protocol validates frames. A port is not considered connected until valid live frames arrive.
+3. Transport opens the selected port and protocol requires three checksum-valid live-stick frames. A port is not considered connected and no Xbox target exists until that gate passes.
 4. Mapping transforms checksum-validated RC-N1 frames into Xbox 360 axes; output is neutral before the first valid frame.
 5. Lifecycle drops the virtual target on an I/O failure, then rediscovers the Protocol interface after a short delay.
 

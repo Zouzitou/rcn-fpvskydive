@@ -4,7 +4,7 @@ Safe, per-user Windows bridge for DJI RC-N controllers and FPV SkyDive. It expos
 
 > Native runtime: [`rust-bridge/`](rust-bridge/) is the production bridge. The installer ships its locally built `rcn-bridge.exe`; it does not require Python, pip, or pytest.
 
-> Status: RC-N1 is the validated native implementation. RC-N2 and RC-N3 are intentionally not activated until their Protocol interface and frame layout have independent hardware evidence; a name or USB vendor alone is not compatibility evidence.
+> Status: RC-N1 is hardware-validated. RC-N2 and RC-N3 may enter the same native bridge only after their healthy DJI Protocol interface returns three checksum-valid 38-byte stick frames; the virtual Xbox controller is not created before that gate passes. A name or USB vendor alone is never compatibility evidence.
 
 ## Design goals
 
@@ -27,7 +27,7 @@ cargo build --release --manifest-path rust-bridge/Cargo.toml
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.20/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.21/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
@@ -55,7 +55,7 @@ The installed uninstaller is available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninsta
 
 ## Driver and game setup
 
-Mode 2 is the native mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The bridge accepts only the RC-N1 `VID_2CA3&PID_1020` Protocol interface and never uses its Debug COM port. After `self-test` and `bridge-smoke` succeed, open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
+Mode 2 is the native mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The bridge never uses a Debug COM port. RC-N1 is proven on `VID_2CA3&PID_1020`; other RC-N-family Protocol interfaces are fail-closed until they complete the checksum/live-frame gate. After `self-test` and `bridge-smoke` succeed, open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
 
 ## Security
 
