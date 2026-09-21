@@ -44,6 +44,8 @@ def test_bridge_opens_only_discovered_candidate(tmp_path):
     bridge=Bridge(tmp_path, lambda: port, Transport, Output(), HealthStore(tmp_path))
     bridge.start(); assert bridge.connect_if_available(); assert bridge.transport.opened
     bridge.poll_once(); assert len(bridge.transport.writes) == 3; bridge.stop()
+    health = HealthStore(tmp_path).path.read_text(encoding="utf-8")
+    assert '"protocol_port": "COM9"' in health and '"usb_instance_id": "MI_02"' in health
 
 def test_bridge_emits_axes_only_after_live_verification(tmp_path):
     class LiveTransport(Transport):

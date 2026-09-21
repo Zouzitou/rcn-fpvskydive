@@ -30,9 +30,9 @@ class Lifecycle:
         self.last_frame = None
     def waiting(self):
         self.state = BridgeState.WAITING_FOR_CONTROLLER; self.health.write(self.state.value)
-    def candidate_found(self):
+    def candidate_found(self, **details):
         self.verification = LiveVerification()
-        self.state = BridgeState.OPENING_PROTOCOL; self.health.write(self.state.value)
+        self.state = BridgeState.OPENING_PROTOCOL; self.health.write(self.state.value, **details)
     def frame(self, timestamp=None):
         self.last_frame = timestamp or monotonic()
         if self.state == BridgeState.OPENING_PROTOCOL:

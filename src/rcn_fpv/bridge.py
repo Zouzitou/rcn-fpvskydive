@@ -33,7 +33,7 @@ class Bridge:
                 self.logger.event("waiting_for_controller")
                 self.last_wait_logged_at = now
             return False
-        self.lifecycle.candidate_found()
+        self.lifecycle.candidate_found(protocol_port=candidate.device, usb_instance_id=candidate.instance_id)
         self.logger.event("protocol_candidate", device=candidate.device, instance_id=candidate.instance_id)
         self.transport = self.transport_factory(candidate)
         result = self.transport.open()

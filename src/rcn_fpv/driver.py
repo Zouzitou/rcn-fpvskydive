@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Iterable
-import re
+import json, re, subprocess
 
 @dataclass(frozen=True)
 class DriverEvidence:
@@ -35,3 +35,25 @@ def parse_driver_output(text: str):
         signed=bool(re.search(r"(?im)^\s*(?:digitally\s+signed|signed)\s*:\s*(?:yes|true)\b", text)),
         hardware_ids=ids, ports_class=bool(re.search(r"(?i)class\s*name\s*:\s*ports", text)),
     )
+
+def discover_driver_evidence():
+    """Read signed-driver evidence for the supported DJI USB hardware through CIM."""
+    script = (
+        "$d=Get-CimInstance Win32_PnPSignedDriver | Where-Object {$_.DeviceID -match 'VID_2CA3&PID_1020'} | "
+        "Select-Object Manufacturer,DriverVersion,IsSigned,DeviceClass,DeviceID; $d | ConvertTo-Json -Compress"
+    )
+    try:
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", script], capture_output=True, text=True, check=False)
+        if result.returncode or not result.stdout.strip(): return None
+        records = json.loads(result.stdout)
+        records = records if isinstance(records, list) else [records]
+        records = [record for record in records if isinstance(record, dict)]
+        if not records: return None
+        record = records[0]
+        return DriverEvidence(
+            provider=str(record.get("Manufacturer") or ""), version=str(record.get("DriverVersion") or ""),
+            signed=record.get("IsSigned") is True, hardware_ids=tuple(str(item.get("DeviceID") or "") for item in records),
+            ports_class=str(record.get("DeviceClass") or "").lower() == "ports",
+        )
+    except (OSError, ValueError, TypeError):
+        return None

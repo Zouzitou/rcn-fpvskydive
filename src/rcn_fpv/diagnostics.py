@@ -2,6 +2,7 @@ import json, os, platform, re
 from pathlib import Path
 from .logging import tail
 from .steam import find_fpv_skydive, steam_library_roots
+from .driver import discover_driver_evidence, validate_driver
 from . import __version__
 
 def redact(value):
@@ -35,6 +36,11 @@ def report(root: Path, extra=None):
         except (OSError, ValueError):
             data["health"] = {"error": "unreadable health file"}
     data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]
+    evidence = discover_driver_evidence()
+    if evidence:
+        valid, reasons = validate_driver(evidence)
+        data["driver"] = {"provider": evidence.provider, "version": evidence.version,
+                          "valid": valid, "reasons": reasons}
     data["fpv_skydive"] = redact(find_fpv_skydive(steam_library_roots()))
     startup = root / "state" / "startup.json"
     if startup.exists():

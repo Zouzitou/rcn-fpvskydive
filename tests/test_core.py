@@ -90,6 +90,7 @@ def test_diagnostic_redaction_preserves_json_structure():
 
 def test_health_retains_gamepad_evidence_across_state_changes(tmp_path):
     store = HealthStore(tmp_path)
-    store.write("gamepad_ready", virtual_gamepad_test="passed")
+    store.write("gamepad_ready", virtual_gamepad_test="passed", protocol_port="COM12", usb_instance_id="MI_02")
     store.write("waiting_for_controller")
     assert report(tmp_path)["health"]["virtual_gamepad_test"] == "passed"
+    assert report(tmp_path)["health"]["protocol_port"] == "COM12"

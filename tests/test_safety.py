@@ -1,3 +1,4 @@
+from rcn_fpv import driver
 from rcn_fpv.driver import DriverEvidence, pnputil_command, validate_driver, parse_driver_output
 from rcn_fpv.startup import choose_startup_method
 from rcn_fpv.lifecycle import BridgeState, Lifecycle
@@ -22,6 +23,12 @@ def test_driver_output_parser_is_conservative():
 def test_driver_output_parser_rejects_explicit_unsigned_result():
     evidence = parse_driver_output("Class Name: Ports\nDigitally Signed: No\nUSB\\VID_2CA3&PID_1020")
     assert not evidence.signed and not validate_driver(evidence)[0]
+
+def test_cim_driver_discovery_uses_signed_ports_evidence(monkeypatch):
+    response = type("Result", (), {"returncode": 0, "stdout": '{"Manufacturer":"DJI","DriverVersion":"1","IsSigned":true,"DeviceClass":"Ports","DeviceID":"USB\\\\VID_2CA3&PID_1020"}'})()
+    monkeypatch.setattr(driver.subprocess, "run", lambda *_, **__: response)
+    evidence = driver.discover_driver_evidence()
+    assert evidence and validate_driver(evidence)[0]
 
 def test_startup_fallback_order():
     assert choose_startup_method(True, True).method == "scheduled-task"

@@ -43,8 +43,10 @@ class HealthStore:
         retained = {}
         try:
             previous = json.loads(self.path.read_text(encoding="utf-8"))
-            if isinstance(previous, dict) and "virtual_gamepad_test" in previous:
-                retained["virtual_gamepad_test"] = previous["virtual_gamepad_test"]
+            if isinstance(previous, dict):
+                for key in ("virtual_gamepad_test", "protocol_port", "usb_instance_id"):
+                    if key in previous:
+                        retained[key] = previous[key]
         except (OSError, ValueError):
             pass
         payload = {**retained, "state": state, "pid": os.getpid(), "timestamp": time.time(), **details}
