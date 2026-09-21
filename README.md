@@ -22,15 +22,51 @@ cargo test --manifest-path rust-bridge/Cargo.toml
 cargo build --release --manifest-path rust-bridge/Cargo.toml
 ```
 
-## Installation
+## Tutorial: from install to first flight
 
-Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
+### 1. Install the recommended verified release
+
+Open **PowerShell** (not necessarily as administrator), paste this one line, and wait for the completion message:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.45/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.46/bootstrap.ps1 | iex
 ```
 
-The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
+This is the recommended route. The tagged bootstrapper downloads a fixed release payload and verifies its SHA-256 before it writes anything to your per-user installation. It never silently installs a driver.
+
+### 2. Optional: build it locally from readable source
+
+If you would rather inspect the tagged source and compile the bridge on your own PC, install the stable Rust toolchain from [rustup.rs](https://rustup.rs), reopen PowerShell, then paste:
+
+```powershell
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.46/install-from-source.ps1 | iex
+```
+
+The source installer prints five clear stages: Rust check, source download, local optimized build, install, and the retained inspection path. It does not use Python, pip, pytest, GitHub Actions, or an automatic driver install. The release installer above remains the better choice when you want the fixed SHA-256-verified package instead.
+
+### 3. Launch the game with the bridge
+
+Plug in and power on the RC-N1, then click **Start Menu → RCN FPV SkyDive**. The launcher starts the virtual Xbox bridge, waits for it to be ready, launches FPV SkyDive, and stops that exact bridge after the game exits. It never runs at Windows login.
+
+For Steam Library launches instead, open **FPV SkyDive → Properties → General → Launch Options** and paste this one-time setting:
+
+```text
+cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
+```
+
+### 4. Verify your sticks once
+
+Use the Flight Console before your first flight:
+
+```powershell
+& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
+```
+
+Choose **Verify sticks** (or press `v`). Move the prompted stick through its range while the prompt waits, then press Enter. After all four axes pass, open FPV SkyDive’s own controller-calibration screen and bind the axes there. The bridge deliberately leaves Arm, Pause, Restart, and Recover bindings alone.
+
+### 5. Fly, then check health if anything looks wrong
+
+In the console, `l` launches FPV SkyDive and `g` runs the read-only game check. A healthy session shows **Bridge connected**, **Virtual Xbox ready**, and **FPV SkyDive running**. If Windows has no `DEVICE USB VCOM For Protocol` port, use the deliberate official-driver flow in the next section; do not use the Debug port.
 
 ## Commands
 
@@ -43,13 +79,7 @@ $Bridge = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive\bin\rcn-bridge.exe'
 & $Bridge bridge-auto
 ```
 
-The bridge never starts at Windows login. The installer adds **Start Menu → RCN FPV SkyDive**; click it to start the game only after the virtual controller is ready. If you prefer to launch from Steam's Library, open **FPV SkyDive → Properties → General → Launch Options** and paste this one-time setting:
-
-```text
-cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
-```
-
-Either launcher starts the bridge immediately before FPV SkyDive, waits until the virtual Xbox controller is connected, and the wrapper stops that exact bridge process when the game exits. `bridge-auto` remains the interactive foreground command for diagnostics; end it with `Ctrl+C` after game calibration.
+`bridge-auto` remains the interactive foreground command for diagnostics; end it with `Ctrl+C` after game calibration.
 
 While FPV SkyDive is open, `& "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" game-check` provides one read-only proof that the game process, connected bridge, and Windows Xbox controller are all present.
 
