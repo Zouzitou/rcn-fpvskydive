@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.41/rcn-fpvskydive-v0.1.41.zip'
-$ExpectedSha256 = 'F6AD81E47A396C7451E0262A95917C40BA6D331921ACAFCD3D4931DA0957A6A0'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.42/rcn-fpvskydive-v0.1.42.zip'
+$ExpectedSha256 = '2F395411ADA19ACEF1AFE9FE6FE641E9F3AAA4AE17D9A262290FFD3A64D7E4F9'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -65,5 +65,19 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 }
 @{ state='installed'; runtime='native-rust'; gamepad_self_test=$SelfTestPassed; self_test_output=($SelfTest -join "`n"); timestamp=(Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install
+$StartMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+$Shortcut = Join-Path $StartMenu 'RCN FPV SkyDive.lnk'
+try {
+  New-Item -ItemType Directory -Force -Path $StartMenu | Out-Null
+  $Shell = New-Object -ComObject WScript.Shell
+  $Link = $Shell.CreateShortcut($Shortcut)
+  $Link.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+  $Link.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $Root 'open-fpv.ps1')`""
+  $Link.WorkingDirectory = $Root
+  $Link.Description = 'Start FPV SkyDive with the RCN virtual Xbox controller'
+  $Link.Save()
+} catch {
+  Write-Warning "Could not create the optional Start-menu launcher: $($_.Exception.Message)"
+}
 if (-not $SelfTestPassed) { Write-Warning 'Native virtual-controller self-test failed. Check the ViGEmBus installation before controller use.' }
-Write-Host 'Native environment prepared. Configure the Steam launch option before playing; the bridge does not run at Windows login.'
+Write-Host 'Native environment prepared. Use Start Menu > RCN FPV SkyDive for one-click launching; the bridge does not run at Windows login.'

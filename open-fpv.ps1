@@ -28,8 +28,10 @@ function Get-SteamRoots {
 
 function Get-FpvPaths {
   @(Get-SteamRoots | ForEach-Object {
-    $path = Join-Path $_ 'steamapps\common\FPV SkyDive'
-    if (Test-Path -LiteralPath $path) { (Resolve-Path -LiteralPath $path).Path }
+    foreach ($folder in 'FPV SkyDive','FPV.SkyDive') {
+      $path = Join-Path $_ (Join-Path 'steamapps\common' $folder)
+      if (Test-Path -LiteralPath $path) { (Resolve-Path -LiteralPath $path).Path }
+    }
   } | Select-Object -Unique)
 }
 
@@ -44,5 +46,13 @@ if ($Action -eq 'diagnose') {
   exit 0
 }
 if ($paths.Count -eq 0) { throw "FPV SkyDive (Steam app $AppId) was not found in the detected Steam libraries." }
-Start-Process "steam://rungameid/$AppId"
-Write-Host "Opened FPV SkyDive through Steam: $($paths[0])"
+$GameExe = Join-Path $paths[0] 'FPV.SkyDive.exe'
+$Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
+$Wrapper = Join-Path $Root 'launch-fpv.ps1'
+if (-not (Test-Path -LiteralPath $GameExe)) { throw "FPV SkyDive executable was not found: $GameExe" }
+if (-not (Test-Path -LiteralPath $Wrapper)) { throw "Game bridge wrapper was not found: $Wrapper" }
+if (Get-Process -Name 'FPV.SkyDive' -ErrorAction SilentlyContinue) {
+  throw 'FPV SkyDive is already running. Close it before starting another bridge session.'
+}
+Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$Wrapper,$GameExe) -WindowStyle Hidden
+Write-Host "Starting FPV SkyDive with the RCN bridge: $GameExe"

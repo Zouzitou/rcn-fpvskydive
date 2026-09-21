@@ -4,8 +4,10 @@ $ErrorActionPreference = 'Stop'
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $Bridge = Join-Path $Root 'bin\rcn-bridge.exe'
 $Wrapper = Join-Path $Root 'launch-fpv.ps1'
+$Shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\RCN FPV SkyDive.lnk'
 if (-not (Test-Path -LiteralPath $Bridge)) { throw "Installed bridge is missing: $Bridge" }
 if (-not (Test-Path -LiteralPath $Wrapper)) { throw "Installed wrapper is missing: $Wrapper" }
+if (-not (Test-Path -LiteralPath $Shortcut)) { throw "Installed Start-menu launcher is missing: $Shortcut" }
 
 $selfTestPassed = $false
 for ($attempt = 1; $attempt -le 5; $attempt++) {
@@ -31,6 +33,7 @@ if ($watchers.Count -ne 0) { throw "Wrapper left $($watchers.Count) bridge watch
   installed = $true
   self_test = 'passed'
   startup_mode = $startup.method
+  start_menu_launcher = $true
   wrapper_exit = 0
   remaining_watchers = $watchers.Count
 } | ConvertTo-Json

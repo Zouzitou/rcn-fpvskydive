@@ -1,6 +1,6 @@
 # FPV SkyDive integration
 
-The bridge is launched by Steam only for FPV SkyDive. In the game's Steam **Properties → General → Launch Options**, add:
+The installer adds **Start Menu → RCN FPV SkyDive**, which launches the game through the bridge with no Steam configuration. Alternatively, use Steam's normal Library entry after adding the following one-time launch option in **Properties → General**:
 
 ```text
 cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%

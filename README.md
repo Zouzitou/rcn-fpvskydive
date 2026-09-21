@@ -27,7 +27,7 @@ cargo build --release --manifest-path rust-bridge/Cargo.toml
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.41/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.42/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
@@ -43,13 +43,13 @@ $Bridge = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive\bin\rcn-bridge.exe'
 & $Bridge bridge-auto
 ```
 
-The bridge never starts at Windows login. In Steam, open **FPV SkyDive → Properties → General → Launch Options** and paste this one-time setting:
+The bridge never starts at Windows login. The installer adds **Start Menu → RCN FPV SkyDive**; click it to start the game only after the virtual controller is ready. If you prefer to launch from Steam's Library, open **FPV SkyDive → Properties → General → Launch Options** and paste this one-time setting:
 
 ```text
 cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
 ```
 
-Steam then starts the bridge immediately before FPV SkyDive, waits until the virtual Xbox controller is connected, and the wrapper stops that exact bridge process when the game exits. `bridge-auto` remains the interactive foreground command for diagnostics; end it with `Ctrl+C` after game calibration.
+Either launcher starts the bridge immediately before FPV SkyDive, waits until the virtual Xbox controller is connected, and the wrapper stops that exact bridge process when the game exits. `bridge-auto` remains the interactive foreground command for diagnostics; end it with `Ctrl+C` after game calibration.
 
 The installed uninstaller is available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninstall.ps1`. The native `open-fpv` command detects Steam libraries and opens FPV SkyDive through Steam without modifying game files.
 
