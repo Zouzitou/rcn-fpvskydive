@@ -1,9 +1,10 @@
-# RCN FPV SkyDive v0.1.59
+# RCN FPV SkyDive v0.1.60
 
 ## Highlights
 
-- Driver installation now validates the official Windows driver-package trust boundary correctly: the DJI INF must reference a present, valid catalog signed by DJI or a trusted Microsoft hardware publisher before the installer can request UAC or call `pnputil`.
-- Driver packages with a missing catalog, unsafe catalog path, invalid signature, non-DJI signer, wrong provider, or wrong DJI USB vendor ID are rejected before installation.
+- The bridge now makes an explicit neutral Xbox-stick update on every runtime exit path after the virtual controller is created, including a transport or output error.
+- Driver installation continues to validate the official Windows driver-package trust boundary before UAC or `pnputil`.
+- The Rust package metadata now correctly declares the project’s AGPLv3 license.
 
 ## Flight notes
 

@@ -842,44 +842,51 @@ fn run_bridge(
     target.update(&neutral)?;
     let mut mapped_frames = 0;
     let mut last_status = Instant::now();
-    loop {
-        serial.write_all(&read_sticks())?;
-        if let Ok(count) = serial.read(&mut chunk) {
-            buffer.extend_from_slice(&chunk[..count]);
-        }
-        for packet in drain_frames(&mut buffer) {
-            if let Ok(frame) = parse_sticks(&packet) {
-                let axes = mode2_with_config(frame, mapping);
-                let report = X360Report {
-                    thumb_lx: axes.left_x,
-                    thumb_ly: axes.left_y,
-                    thumb_rx: axes.right_x,
-                    thumb_ry: axes.right_y,
-                    ..Default::default()
-                };
-                target.update(&report)?;
-                mapped_frames += 1;
+    let bridge_result = (|| -> Result<usize, BridgeError> {
+        loop {
+            serial.write_all(&read_sticks())?;
+            if let Ok(count) = serial.read(&mut chunk) {
+                buffer.extend_from_slice(&chunk[..count]);
             }
-        }
-        if last_status.elapsed() >= Duration::from_secs(1) {
-            publish_status("connected", Some(port), mapped_frames, None);
-            last_status = Instant::now();
-        }
-        if deadline.is_some_and(|time| Instant::now() >= time) {
-            target.update(&neutral)?;
-            if mapped_frames == 0 {
-                publish_status("no_live_input", Some(port), 0, None);
-                return Err(BridgeError::NoLiveFrames);
+            for packet in drain_frames(&mut buffer) {
+                if let Ok(frame) = parse_sticks(&packet) {
+                    let axes = mode2_with_config(frame, mapping);
+                    let report = X360Report {
+                        thumb_lx: axes.left_x,
+                        thumb_ly: axes.left_y,
+                        thumb_rx: axes.right_x,
+                        thumb_ry: axes.right_y,
+                        ..Default::default()
+                    };
+                    target.update(&report)?;
+                    mapped_frames += 1;
+                }
             }
-            publish_status(
-                "stopped",
-                Some(port),
-                mapped_frames,
-                Some("smoke test completed"),
-            );
-            return Ok(mapped_frames);
+            if last_status.elapsed() >= Duration::from_secs(1) {
+                publish_status("connected", Some(port), mapped_frames, None);
+                last_status = Instant::now();
+            }
+            if deadline.is_some_and(|time| Instant::now() >= time) {
+                if mapped_frames == 0 {
+                    publish_status("no_live_input", Some(port), 0, None);
+                    return Err(BridgeError::NoLiveFrames);
+                }
+                publish_status(
+                    "stopped",
+                    Some(port),
+                    mapped_frames,
+                    Some("smoke test completed"),
+                );
+                return Ok(mapped_frames);
+            }
+            thread::sleep(Duration::from_millis(20));
         }
-        thread::sleep(Duration::from_millis(20));
+    })();
+    let cleanup_result = target.update(&neutral);
+    match (bridge_result, cleanup_result) {
+        (Ok(mapped_frames), Ok(())) => Ok(mapped_frames),
+        (Ok(_), Err(error)) => Err(error.into()),
+        (Err(error), _) => Err(error),
     }
 }
 
