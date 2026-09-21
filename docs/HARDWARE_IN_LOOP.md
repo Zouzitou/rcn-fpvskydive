@@ -2,6 +2,8 @@
 
 Run this plan on clean Windows 10 and Windows 11 machines. Record controller model, firmware version, cable, USB port, driver evidence, selected instance ID, selected Protocol port, and redacted diagnostic report.
 
+An initial RC-N1 native serial capture is recorded in [HARDWARE_EVIDENCE_RC_N1.md](HARDWARE_EVIDENCE_RC_N1.md). It validates the protocol path only; complete the remaining virtual-gamepad, startup, and game checks before release.
+
 ## Per-controller matrix
 
 | Test | RC-N1 | RC-N2 | RC-N3 | Required result |
