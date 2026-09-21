@@ -1,6 +1,7 @@
 import json, os, platform, re
 from pathlib import Path
 from .logging import tail
+from .steam import find_fpv_skydive, steam_library_roots
 from . import __version__
 
 def redact(value):
@@ -34,6 +35,7 @@ def report(root: Path, extra=None):
         except (OSError, ValueError):
             data["health"] = {"error": "unreadable health file"}
     data["recent_log_lines"] = [redact(line) for line in tail(root / "logs" / "bridge.jsonl")]
+    data["fpv_skydive"] = redact(find_fpv_skydive(steam_library_roots()))
     startup = root / "state" / "startup.json"
     if startup.exists():
         try:
