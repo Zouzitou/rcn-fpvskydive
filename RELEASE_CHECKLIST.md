@@ -12,6 +12,7 @@
 - [ ] Verify `startup.ps1 -Action install` leaves no login watcher, then test the Steam launch wrapper starts one bridge for the game and removes it after game exit.
 - [ ] With an official DJI INF, run `driver.ps1 -Action install -InfPath ...`; verify signature rejection, UAC, rescan, and Protocol-port postcondition.
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
-- [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
-- [ ] Run `./release.ps1 -Version <version>` locally; it runs tests, packages the allowlist, updates the bootstrap hash, commits/pushes, and publishes with `gh release create`. GitHub Actions is intentionally not used.
+- [ ] Copy `RELEASE_NOTES_TEMPLATE.md` to `RELEASE_NOTES.md`, replace all placeholders, use the exact release tag in its title, and explain pilot-visible changes, flight limitations, verification, and the update command. This is mandatory for every release.
+- [ ] Publish only after README URLs, release notes, signatures, hashes, and rollback instructions are complete.
+- [ ] Run `./release.ps1 -Version <version>` locally; it rejects incomplete or wrongly versioned release notes, runs tests, packages the allowlist, updates the bootstrap hash, commits/pushes, and publishes the rendered notes with `gh release create`. GitHub Actions is intentionally not used.
 - [ ] Run `./verify-release.ps1` after publication and confirm the downloaded payload matches the bootstrapper hash.

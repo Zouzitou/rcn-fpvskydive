@@ -1,7 +1,19 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Version)
+param(
+  [Parameter(Mandatory=$true)][string]$Version,
+  [string]$NotesFile = 'RELEASE_NOTES.md'
+)
 $ErrorActionPreference = 'Stop'
 $tag = if ($Version.StartsWith('v')) { $Version } else { "v$Version" }
+$NotesPath = Join-Path $PSScriptRoot $NotesFile
+if (-not (Test-Path -LiteralPath $NotesPath -PathType Leaf)) { throw "Release notes are required. Copy RELEASE_NOTES_TEMPLATE.md to $NotesFile and complete it before publishing." }
+$ReleaseNotes = Get-Content -LiteralPath $NotesPath -Raw
+if ([string]::IsNullOrWhiteSpace($ReleaseNotes)) { throw 'Release notes are empty; release cancelled.' }
+if ($ReleaseNotes -match '<[^>]+>' -or $ReleaseNotes -match '\[Describe|\[State|\[List') { throw 'Release notes still contain template placeholders; release cancelled.' }
+if ($ReleaseNotes -notmatch [regex]::Escape("# RCN FPV SkyDive $tag")) { throw "Release notes must start with '# RCN FPV SkyDive $tag'; release cancelled." }
+foreach ($heading in '## Highlights', '## Flight notes', '## Verification', '## Install or update') {
+  if ($ReleaseNotes -notmatch [regex]::Escape($heading)) { throw "Release notes are missing '$heading'; release cancelled." }
+}
 $stage = Join-Path $env:TEMP ('rcn-release-' + [guid]::NewGuid().ToString('N'))
 $payload = Join-Path $stage 'payload'
 $zip = Join-Path $stage "rcn-fpvskydive-$tag.zip"
@@ -47,7 +59,7 @@ $sourceInstaller = [regex]::Replace($sourceInstaller, '(?m)^param\(\[string\]\$R
 Set-Content -LiteralPath 'install-from-source.ps1' -Value $sourceInstaller -NoNewline
 New-Item -ItemType Directory -Force -Path (Join-Path $payload 'bin') | Out-Null
 Copy-Item -LiteralPath $bridge -Destination (Join-Path $payload 'bin\rcn-bridge.exe') -Force
-$items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','verify-installed.ps1','installer-ui.ps1','install-app.ps1','install-from-source.ps1','startup.ps1','uninstall.ps1','driver.ps1','open-fpv.ps1','game-check.ps1','launch-fpv.ps1','launch-fpv.cmd','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md')
+$items = @('docs','release.ps1','verify-release.ps1','verify-scripts.ps1','verify-installed.ps1','installer-ui.ps1','install-app.ps1','install-from-source.ps1','startup.ps1','uninstall.ps1','driver.ps1','open-fpv.ps1','game-check.ps1','launch-fpv.ps1','launch-fpv.cmd','README.md','ARCHITECTURE.md','ACCEPTANCE.md','SECURITY.md','RELEASE_CHECKLIST.md','RELEASE_NOTES_TEMPLATE.md')
 foreach ($item in $items) { Copy-Item -LiteralPath $item -Destination $payload -Recurse -Force }
 New-DeterministicZip -Source $payload -Destination $zip
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
@@ -61,6 +73,6 @@ git commit -m "Prepare $tag release"
 if ($LASTEXITCODE -ne 0) { throw 'Git commit failed; release cancelled.' }
 git push
 if ($LASTEXITCODE -ne 0) { throw 'Git push failed; release cancelled.' }
-gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes "Locally packaged and SHA-256 verified release."
+gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes-file $NotesPath
 if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
 Write-Host "Published $tag with SHA-256 $hash"

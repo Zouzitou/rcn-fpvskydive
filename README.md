@@ -17,7 +17,7 @@ You need a Windows 10/11 PC, FPV SkyDive installed through Steam, a powered-on R
 Open **PowerShell**, paste this, and wait for the orange “Installation Complete” screen:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.51/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.52/bootstrap.ps1 | iex
 ```
 
 It is a fixed, SHA-256-verified release installer. It does not silently install a driver, change your game bindings, show your Windows username, or run the bridge at login.
@@ -73,7 +73,7 @@ If Windows has no Protocol port, you may need DJI’s official VCOM driver. The 
 Want to inspect and compile the app yourself? Install stable Rust from [rustup.rs](https://rustup.rs), then run:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.51/install-from-source.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.52/install-from-source.ps1 | iex
 ```
 
 The same orange installer builds the tagged source locally and keeps its source/build log private on your machine. For architecture, acceptance evidence, and hardware test plans, see [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).
