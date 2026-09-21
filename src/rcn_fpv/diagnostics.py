@@ -50,6 +50,8 @@ def report(root: Path, extra=None):
                 "valid_frame_count": data["health"].get("valid_frame_count", 0),
                 "last_valid_frame": data["health"].get("last_valid_frame"),
                 "live_input_verified": data["health"].get("live_input_verified", False),
+                "stability_seconds": data["health"].get("stability_seconds", 0),
+                "stability_verified": data["health"].get("stability_verified", False),
             }
         except (OSError, ValueError):
             data["health"] = {"error": "unreadable health file"}

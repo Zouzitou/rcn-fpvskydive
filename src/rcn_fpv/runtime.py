@@ -44,7 +44,7 @@ class HealthStore:
         try:
             previous = json.loads(self.path.read_text(encoding="utf-8"))
             if isinstance(previous, dict):
-                for key in ("virtual_gamepad_test", "protocol_port", "usb_instance_id", "controller_model", "packet_count", "valid_frame_count", "last_valid_frame", "live_axes", "live_input_verified"):
+                for key in ("virtual_gamepad_test", "protocol_port", "usb_instance_id", "controller_model", "packet_count", "valid_frame_count", "last_valid_frame", "live_axes", "live_input_verified", "stability_seconds", "stability_verified"):
                     if key in previous:
                         retained[key] = previous[key]
         except (OSError, ValueError):

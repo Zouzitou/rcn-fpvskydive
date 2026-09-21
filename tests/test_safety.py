@@ -58,6 +58,15 @@ def test_lifecycle_requires_all_live_axes(tmp_path):
     assert '"live_input_verified": true' in health and '"left_x"' in health
     assert life.lost() == 1
 
+def test_lifecycle_requires_a_stability_interval_after_live_verification(tmp_path):
+    store = HealthStore(tmp_path); life = Lifecycle(store, stability_seconds=10)
+    life.candidate_found(); life.frame(1.0)
+    for axis in life.verification.required_axes: life.verification.observe(axis, 0.0, 0.2)
+    life.frame(2.0)
+    assert '"stability_verified": false' in store.path.read_text(encoding="utf-8")
+    life.frame(12.0)
+    assert '"stability_verified": true' in store.path.read_text(encoding="utf-8")
+
 def test_lifecycle_requires_fresh_live_input_after_reconnect(tmp_path):
     life = Lifecycle(HealthStore(tmp_path))
     life.candidate_found(); life.frame(1.0)

@@ -65,6 +65,8 @@ Startup registration immediately checks for exactly one managed bridge watchdog 
 
 `rcn-fpv calibrate` shows the next physical stick movement required by the bridge’s live-input verifier, plus the currently observed axes. Once all four axes are verified, it directs you to FPV SkyDive’s normal controller calibration screen and leaves game bindings untouched.
 
+The bridge records a separate 10-second live-frame stability gate after all four axes verify. A connected state without `stability_verified: true` is not a ready setup.
+
 ## Security
 
 Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.
