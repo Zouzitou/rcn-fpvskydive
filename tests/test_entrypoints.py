@@ -28,3 +28,12 @@ def test_repair_requires_complete_managed_install(tmp_path, monkeypatch, capsys)
     monkeypatch.setattr(cli, "ROOT", tmp_path)
     assert cli.main(["repair"]) == 2
     assert "managed files are incomplete" in capsys.readouterr().err
+
+def test_uninstall_schedules_managed_uninstaller(tmp_path, monkeypatch, capsys):
+    (tmp_path / "uninstall.ps1").write_text("")
+    calls = []
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda command: calls.append(command))
+    assert cli.main(["uninstall"]) == 0
+    assert calls and calls[0][0] == "powershell.exe"
+    assert "uninstall scheduled" in capsys.readouterr().out

@@ -86,7 +86,14 @@ def main(argv=None):
         print("repair complete: managed package and startup registration restored")
         return 0
     if args.command == "uninstall":
-        print("uninstall: run uninstall.ps1 from the verified release")
+        uninstall = ROOT / "uninstall.ps1"
+        if not uninstall.exists():
+            print("uninstall failed safely: managed uninstaller is missing; remove the release with its verified uninstall.ps1", file=sys.stderr)
+            return 2
+        escaped = str(uninstall).replace("'", "''")
+        command = f"Start-Sleep -Seconds 1; & '{escaped}' -Confirm:$false"
+        subprocess.Popen(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command])
+        print("uninstall scheduled: startup registration and managed files will be removed after this command exits")
         return 0
     print(f"{args.command}: installer/runtime operation is not available until installed via bootstrap.ps1", file=sys.stderr)
     return 2
