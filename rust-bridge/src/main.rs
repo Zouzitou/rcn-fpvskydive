@@ -1,7 +1,7 @@
 mod mapping;
 mod protocol;
 
-use mapping::mode2;
+use mapping::{MappingConfig, mode2_with_config};
 use protocol::{drain_frames, enable_simulator, parse_sticks, read_sticks};
 use std::{
     env, fs,
@@ -20,7 +20,7 @@ use windows::core::w;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose | start | stop | repair | uninstall | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -51,6 +51,10 @@ fn app_root() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
         .join("RCN-FPVSkyDive")
+}
+
+fn mapping_config_path() -> PathBuf {
+    app_root().join("state").join("mapping.conf")
 }
 
 fn log_line(message: &str) {
@@ -112,6 +116,42 @@ fn run_powershell(script: &str) -> Result<std::process::Output, BridgeError> {
         .output()?)
 }
 
+fn output_text(output: std::process::Output) -> String {
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+fn redact_text(value: &str) -> String {
+    let mut redacted = value.to_string();
+    for (variable, token) in [
+        ("LOCALAPPDATA", "%LOCALAPPDATA%"),
+        ("APPDATA", "%APPDATA%"),
+        ("USERPROFILE", "%USERPROFILE%"),
+    ] {
+        if let Some(path) = env::var_os(variable) {
+            let path = path.to_string_lossy();
+            if !path.is_empty() {
+                redacted = redacted.replace(path.as_ref(), token);
+            }
+        }
+    }
+    redacted
+}
+
+fn read_tail(path: &std::path::Path, count: usize) -> Vec<String> {
+    let Ok(contents) = fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let lines: Vec<_> = contents.lines().map(str::to_string).collect();
+    lines
+        .into_iter()
+        .rev()
+        .take(count)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect()
+}
+
 struct WatchMutex(HANDLE);
 
 impl Drop for WatchMutex {
@@ -130,16 +170,50 @@ fn acquire_watch_mutex() -> Result<WatchMutex, BridgeError> {
     Ok(WatchMutex(handle))
 }
 
-fn diagnose() -> Result<(), BridgeError> {
+fn diagnose(redact: bool) -> Result<(), BridgeError> {
     let status = fs::read_to_string(status_path())
         .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
-    let output = run_powershell(
+    let interfaces_output = run_powershell(
         "Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPDeviceID -match 'VID_2CA3' -or $_.Name -match 'DJI USB' } | ForEach-Object { \"$($_.Status)|$($_.Name)|$($_.PNPDeviceID)\" }",
     )?;
-    println!("status: {status}");
-    println!("runtime: native-rust");
+    let os_output = run_powershell(
+        "Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture | ConvertTo-Json -Compress",
+    )?;
+    let driver_output = run_powershell(
+        "Get-CimInstance Win32_PnPSignedDriver | Where-Object { $_.DeviceID -match 'VID_2CA3' } | ForEach-Object { \"$($_.DeviceName)|$($_.DriverProviderName)|$($_.DriverVersion)|$($_.InfName)|signed=$($_.IsSigned)\" }",
+    )?;
+    let steam_output = run_powershell(
+        "$roots=@(); $steam=(Get-ItemProperty 'HKCU:\\Software\\Valve\\Steam' -ErrorAction SilentlyContinue).SteamPath; if($steam){$roots+=$steam; $vdf=Join-Path $steam 'steamapps\\libraryfolders.vdf'; if(Test-Path $vdf){$roots += [regex]::Matches((Get-Content $vdf -Raw),'\"path\"\\s+\"([^\"]+)\"') | ForEach-Object {$_.Groups[1].Value}}}; $roots | Select-Object -Unique | ForEach-Object { $p=Join-Path $_ 'steamapps\\common\\FPV SkyDive'; if(Test-Path $p){$p} }",
+    )?;
+    let startup = fs::read_to_string(app_root().join("state").join("startup.json"))
+        .unwrap_or_else(|_| "not_registered".to_string());
+    let protocol_port = discover_protocol_port();
+    let live_frames = protocol_port.as_deref().map(probe_live_frames).transpose();
+    let processes_output = run_powershell(
+        "Get-Process -Name rcn-bridge -ErrorAction SilentlyContinue | ForEach-Object { \"pid=$($_.Id)|path=$($_.Path)\" }",
+    )?;
+    let log_path = app_root().join("logs").join("bridge.log");
+    println!(
+        "status: {}",
+        if redact { redact_text(&status) } else { status }
+    );
+    println!("runtime: native-rust {}", env!("CARGO_PKG_VERSION"));
+    let windows = output_text(os_output);
+    println!(
+        "windows: {}",
+        if redact {
+            redact_text(&windows)
+        } else {
+            windows
+        }
+    );
     println!("interfaces:");
-    let interfaces = String::from_utf8_lossy(&output.stdout);
+    let interfaces = String::from_utf8_lossy(&interfaces_output.stdout).to_string();
+    let interfaces = if redact {
+        redact_text(&interfaces)
+    } else {
+        interfaces
+    };
     if interfaces.trim().is_empty() {
         println!("  none");
     } else {
@@ -147,10 +221,90 @@ fn diagnose() -> Result<(), BridgeError> {
             println!("  {line}");
         }
     }
+    println!("driver records:");
+    let drivers = output_text(driver_output);
+    let drivers = if redact {
+        redact_text(&drivers)
+    } else {
+        drivers
+    };
+    if drivers.is_empty() {
+        println!("  none");
+    } else {
+        for line in drivers.lines() {
+            println!("  {line}");
+        }
+    }
+    println!(
+        "protocol port: {}",
+        protocol_port.as_deref().unwrap_or("none")
+    );
+    let live_frame_text = match live_frames {
+        Ok(Some(count)) => count.to_string(),
+        Ok(None) => "not attempted".to_string(),
+        Err(error) => format!("error: {error}"),
+    };
+    println!("live frames: {live_frame_text}");
+    println!(
+        "startup: {}",
+        if redact {
+            redact_text(&startup)
+        } else {
+            startup
+        }
+    );
+    let game_path = {
+        let text = output_text(steam_output);
+        if text.is_empty() {
+            "not detected".to_string()
+        } else {
+            text
+        }
+    };
+    println!(
+        "fpv skydive: {}",
+        if redact {
+            redact_text(&game_path)
+        } else {
+            game_path
+        }
+    );
+    println!("bridge processes:");
+    let processes = output_text(processes_output);
+    let processes = if redact {
+        redact_text(&processes)
+    } else {
+        processes
+    };
+    if processes.is_empty() {
+        println!("  none");
+    } else {
+        for line in processes.lines() {
+            println!("  {line}");
+        }
+    }
+    let mapping_path = mapping_config_path().display().to_string();
+    let log_path_display = log_path.display().to_string();
+    println!(
+        "mapping: {}",
+        if redact {
+            redact_text(&mapping_path)
+        } else {
+            mapping_path
+        }
+    );
     println!(
         "log: {}",
-        app_root().join("logs").join("bridge.log").display()
+        if redact {
+            redact_text(&log_path_display)
+        } else {
+            log_path_display
+        }
     );
+    println!("last log lines:");
+    for line in read_tail(&log_path, 100) {
+        println!("  {}", if redact { redact_text(&line) } else { line });
+    }
     Ok(())
 }
 
@@ -234,6 +388,23 @@ fn connect(port: &str) -> Result<Box<dyn serialport::SerialPort>, BridgeError> {
     Ok(serial)
 }
 
+fn probe_live_frames(port: &str) -> Result<usize, BridgeError> {
+    let mut serial = connect(port)?;
+    let mut buffer = Vec::new();
+    let mut chunk = [0u8; 4096];
+    for _ in 0..12 {
+        serial.write_all(&read_sticks())?;
+        thread::sleep(Duration::from_millis(60));
+        if let Ok(count) = serial.read(&mut chunk) {
+            buffer.extend_from_slice(&chunk[..count]);
+        }
+    }
+    Ok(drain_frames(&mut buffer)
+        .iter()
+        .filter(|frame| parse_sticks(frame).is_ok())
+        .count())
+}
+
 fn discover_protocol_port() -> Option<String> {
     let query = "Get-CimInstance Win32_PnPEntity | Where-Object { $_.Status -eq 'OK' -and $_.PNPDeviceID -match 'VID_2CA3' -and $_.Name -match 'For Protocol.*\\(COM[0-9]+\\)' } | Sort-Object Name | Select-Object -First 1 -ExpandProperty Name";
     let output = Command::new("powershell.exe")
@@ -263,7 +434,11 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
     Ok(())
 }
 
-fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeError> {
+fn run_bridge(
+    port: &str,
+    duration: Option<Duration>,
+    mapping: MappingConfig,
+) -> Result<usize, BridgeError> {
     publish_status("connecting", Some(port), 0, None);
     let mut serial = connect(port)?;
     let deadline = duration.map(|duration| Instant::now() + duration);
@@ -299,7 +474,7 @@ fn run_bridge(port: &str, duration: Option<Duration>) -> Result<usize, BridgeErr
         }
         for packet in drain_frames(&mut buffer) {
             if let Ok(frame) = parse_sticks(&packet) {
-                let axes = mode2(frame);
+                let axes = mode2_with_config(frame, mapping);
                 let report = X360Report {
                     thumb_lx: axes.left_x,
                     thumb_ly: axes.left_y,
@@ -347,12 +522,13 @@ fn watch() -> Result<(), BridgeError> {
         }
         Err(error) => return Err(error),
     };
+    let mapping = MappingConfig::load(&mapping_config_path());
     loop {
         match discover_protocol_port() {
             Some(port) => {
                 publish_status("connecting", Some(&port), 0, None);
                 eprintln!("RCN bridge: using {port}");
-                if let Err(error) = run_bridge(&port, None) {
+                if let Err(error) = run_bridge(&port, None, mapping) {
                     publish_status("waiting_for_controller", None, 0, Some(&error.to_string()));
                     eprintln!("RCN bridge: disconnected or unavailable: {error}");
                 }
@@ -373,7 +549,7 @@ fn main() -> Result<(), BridgeError> {
         return Ok(());
     }
     if command == "diagnose" {
-        return diagnose();
+        return diagnose(env::args().nth(2).as_deref() == Some("--redact"));
     }
     if command == "start" {
         return start_watch();
@@ -395,26 +571,12 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "bridge-auto" {
         let port = discover_protocol_port().ok_or(BridgeError::NoProtocolPort)?;
-        run_bridge(&port, None)?;
+        run_bridge(&port, None, MappingConfig::load(&mapping_config_path()))?;
         return Ok(());
     }
     let port = port_from_args()?;
     if command == "probe" {
-        let mut serial = connect(&port)?;
-        let mut buffer = Vec::new();
-        let mut chunk = [0u8; 4096];
-        for _ in 0..12 {
-            serial.write_all(&read_sticks())?;
-            thread::sleep(Duration::from_millis(60));
-            if let Ok(count) = serial.read(&mut chunk) {
-                buffer.extend_from_slice(&chunk[..count]);
-            }
-        }
-        let frames = drain_frames(&mut buffer);
-        let sticks = frames
-            .iter()
-            .filter_map(|frame| parse_sticks(frame).ok())
-            .count();
+        let sticks = probe_live_frames(&port)?;
         println!(
             "{{\"protocol_port\":\"{}\",\"valid_stick_frames\":{}}}",
             port, sticks
@@ -427,6 +589,7 @@ fn main() -> Result<(), BridgeError> {
     let mapped_frames = run_bridge(
         &port,
         (command == "bridge-smoke").then(|| Duration::from_secs(2)),
+        MappingConfig::load(&mapping_config_path()),
     )?;
     if command == "bridge-smoke" {
         println!(
@@ -438,10 +601,29 @@ fn main() -> Result<(), BridgeError> {
 
 #[cfg(test)]
 mod status_tests {
-    use super::escape_json;
+    use super::{BridgeError, acquire_watch_mutex, escape_json, redact_text};
 
     #[test]
     fn escapes_status_text_for_json() {
         assert_eq!(escape_json("COM12 \"busy\""), "COM12 \\\"busy\\\"");
+    }
+
+    #[test]
+    fn rejects_a_second_watcher_owner() {
+        let first = acquire_watch_mutex().expect("first watcher owner");
+        assert!(matches!(
+            acquire_watch_mutex(),
+            Err(BridgeError::AlreadyRunning)
+        ));
+        drop(first);
+    }
+
+    #[test]
+    fn redacts_local_user_paths() {
+        let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") else {
+            return;
+        };
+        let value = format!("{}\\RCN-FPVSkyDive", local_app_data.to_string_lossy());
+        assert_eq!(redact_text(&value), "%LOCALAPPDATA%\\RCN-FPVSkyDive");
     }
 }

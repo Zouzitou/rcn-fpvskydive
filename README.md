@@ -27,7 +27,7 @@ cargo build --release --manifest-path rust-bridge/Cargo.toml
 Run from a trusted checkout or a release-pinned URL in an elevated or non-elevated PowerShell terminal:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.24/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.25/bootstrap.ps1 | iex
 ```
 
 The tagged bootstrapper downloads the release payload and verifies its SHA-256 before installation. It does not silently install an unverified driver.
@@ -55,8 +55,8 @@ The installed uninstaller is available at `%LOCALAPPDATA%\RCN-FPVSkyDive\uninsta
 
 ## Driver and game setup
 
-Mode 2 is the native mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The bridge never uses a Debug COM port. RC-N1 is proven on `VID_2CA3&PID_1020`; other RC-N-family Protocol interfaces are fail-closed until they complete the checksum/live-frame gate. After `self-test` and `bridge-smoke` succeed, open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
+Mode 2 is the native default mapping (left vertical throttle, left horizontal yaw, right vertical pitch, right horizontal roll). Axis inversion, dead zone, center trim, saturation, and response curve can be edited in `%LOCALAPPDATA%\RCN-FPVSkyDive\state\mapping.conf`; restart the game wrapper after changing it. Install the official DJI VCOM driver if Windows does not expose `DEVICE USB VCOM For Protocol`. The packaged `driver.ps1` supports a deliberate validated install when you provide the official INF: `powershell -File "$env:LOCALAPPDATA\RCN-FPVSkyDive\driver.ps1" -Action install -InfPath C:\path\dji_vcom_driver11.inf`. It rejects unsigned INFs and packages without `VID_2CA3`, requests UAC only for `pnputil`, rescans, and requires the Protocol interface to appear. The bridge never uses a Debug COM port. RC-N1 is proven on `VID_2CA3&PID_1020`; other RC-N-family Protocol interfaces are fail-closed until they complete the checksum/live-frame gate. After `self-test` and `bridge-smoke` succeed, open FPV SkyDive normally and use its own controller-calibration screen; the bridge never edits game bindings.
 
 ## Security
 
-The installer is per-user, release-pinned, and SHA-256 verified. It never installs drivers or edits FPV SkyDive settings; use an official DJI driver package and the game’s own calibration UI.
+The installer is per-user, release-pinned, and SHA-256 verified. It never installs a driver implicitly or edits FPV SkyDive settings; use the explicit driver flow with an official DJI package and the game’s own calibration UI.

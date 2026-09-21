@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([switch]$Repair)
 $ErrorActionPreference = 'Stop'
-$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.24/rcn-fpvskydive-v0.1.24.zip'
-$ExpectedSha256 = '6A8EA32D44E42311814CDBCD0C2A759299B4A27F2F8AB6D17601CEB61ABFD8E8'
+$ReleaseUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.25/rcn-fpvskydive-v0.1.25.zip'
+$ExpectedSha256 = 'C6257FC63ADFF2A88EB894A3F52BEA7B512715FC7FAF2E8CCCAB1E2C4972F21D'
 $SourceRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
   $FetchRoot = Join-Path $env:TEMP ('rcn-fpv-fetch-' + [guid]::NewGuid().ToString('N'))
@@ -18,10 +18,39 @@ $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $Bin = Join-Path $Root 'bin'
 $Bridge = Join-Path $Bin 'rcn-bridge.exe'
 New-Item -ItemType Directory -Force -Path $Bin,(Join-Path $Root 'drivers'),(Join-Path $Root 'logs'),(Join-Path $Root 'state') | Out-Null
+$MappingConfig = Join-Path $Root 'state\mapping.conf'
+if (-not (Test-Path -LiteralPath $MappingConfig)) {
+  @'
+# Native Mode 2 defaults. Values are clamped by the bridge.
+# Axis fields: invert=true|false, deadzone=0..0.95, trim=-1..1,
+# saturation=0.05..1, curve=0.1..4.
+left_x.invert=false
+left_x.deadzone=0
+left_x.trim=0
+left_x.saturation=1
+left_x.curve=1
+left_y.invert=false
+left_y.deadzone=0
+left_y.trim=0
+left_y.saturation=1
+left_y.curve=1
+right_x.invert=false
+right_x.deadzone=0
+right_x.trim=0
+right_x.saturation=1
+right_x.curve=1
+right_y.invert=false
+right_y.deadzone=0
+right_y.trim=0
+right_y.saturation=1
+right_y.curve=1
+'@ | Set-Content -LiteralPath $MappingConfig -NoNewline
+}
 Write-Host "RCN FPV SkyDive installer: preparing per-user environment at $Root"
 Copy-Item -Force (Join-Path $SourceRoot 'bin\rcn-bridge.exe') $Bridge
 Copy-Item -Force (Join-Path $SourceRoot 'startup.ps1') (Join-Path $Root 'startup.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'uninstall.ps1') (Join-Path $Root 'uninstall.ps1')
+Copy-Item -Force (Join-Path $SourceRoot 'driver.ps1') (Join-Path $Root 'driver.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.ps1') (Join-Path $Root 'launch-fpv.ps1')
 Copy-Item -Force (Join-Path $SourceRoot 'launch-fpv.cmd') (Join-Path $Root 'launch-fpv.cmd')
 if (-not (Test-Path -LiteralPath $Bridge)) { throw 'Verified release payload did not contain rcn-bridge.exe.' }

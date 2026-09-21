@@ -16,10 +16,10 @@ bootstrap.ps1
               \________________ lifecycle / diagnostics ________________/
 ```
 
-- `discovery`: a bounded WMI query finds healthy DJI `For Protocol` interfaces. Every candidate, including RC-N2/RC-N3, must yield three checksum-valid 38-byte live-stick frames before the Xbox target is created; Debug interfaces are never activated.
+- `discovery`: a bounded WMI query finds healthy DJI `For Protocol` interfaces. Every candidate, including RC-N2/RC-N3, must yield three checksum-valid 38-byte live-stick frames before the Xbox target is created; Debug interfaces are never activated. `driver.ps1` separately validates an explicitly supplied signed INF, checks `VID_2CA3`, invokes `pnputil` only after UAC approval, rescans, and requires the Protocol interface afterward.
 - `transport`: opens and owns the selected Protocol COM port, detects busy/debug/wrong-port states, and emits reconnect events.
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
-- `mapping`: the established RC-N1 Mode 2 four-axis mapping with all buttons left clear.
+- `mapping`: the established RC-N1 Mode 2 four-axis mapping with per-axis inversion, dead zone, trim, saturation, and response curve loaded from the managed state file; all buttons remain clear.
 - `gamepad`: native ViGEm adapter with neutral-on-start, neutral-on-smoke-test exit, and target removal when a session ends.
 - `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, and stops it when the game process exits.
 
@@ -53,9 +53,9 @@ The installer is idempotent and has no login-start component. Steam starts the b
 - DuML frames parse valid packets and reject bad length/checksum/truncated input.
 - Mapping covers neutral, inversion, trim, dead zone, saturation, curves, and configured transmitter modes.
 - Disconnect/reconnect and COM renumbering return to connected state with neutral output during gaps.
-- Duplicate bridge startup is rejected and leaves exactly one owner.
+- Duplicate bridge startup is rejected by a Windows named mutex and leaves exactly one owner.
 - Self-test always releases axes/buttons and reports cleanup failures.
-- Diagnostic exports redact usernames and machine-specific paths.
+- `diagnose` reports OS/runtime, signed driver records, Protocol port, live frames, startup state, Steam detection, process identity, mapping path, and the last 100 log lines. A redacted export remains a release gate.
 
 ### Hardware-in-the-loop
 

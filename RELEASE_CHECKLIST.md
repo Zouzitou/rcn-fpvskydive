@@ -10,6 +10,7 @@
 - [ ] Run RC-N2 and RC-N3 detection; report unsupported protocol unless validated.
 - [ ] Verify virtual gamepad self-test cleanup and no stuck axes/buttons.
 - [ ] Verify `startup.ps1 -Action install` leaves no login watcher, then test the Steam launch wrapper starts one bridge for the game and removes it after game exit.
+- [ ] With an official DJI INF, run `driver.ps1 -Action install -InfPath ...`; verify signature rejection, UAC, rescan, and Protocol-port postcondition.
 - [ ] Produce a redacted diagnostic bundle and review logs for secrets.
 - [ ] Publish only after README URLs, signatures, hashes, and rollback instructions are complete.
 - [ ] Run `./release.ps1 -Version <version>` locally; it runs tests, packages the allowlist, updates the bootstrap hash, commits/pushes, and publishes with `gh release create`. GitHub Actions is intentionally not used.
