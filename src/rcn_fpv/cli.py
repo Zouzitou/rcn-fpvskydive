@@ -1,4 +1,4 @@
-import argparse, json, os, sys
+import argparse, json, os, subprocess, sys
 from pathlib import Path
 from . import __version__
 from .diagnostics import report
@@ -67,7 +67,23 @@ def main(argv=None):
         print("stop requested: the bridge will neutralize controls and exit safely")
         return 0
     if args.command == "repair":
-        print("repair: rerun the verified bootstrapper to repair the managed environment")
+        python = ROOT / ".venv" / "Scripts" / "python.exe"
+        app = ROOT / "app"
+        startup = ROOT / "startup.ps1"
+        if not python.exists() or not app.exists() or not startup.exists():
+            print("repair failed safely: managed files are incomplete; rerun the verified bootstrapper", file=sys.stderr)
+            return 2
+        package = subprocess.run([str(python), "-m", "pip", "install", "--disable-pip-version-check",
+                                  "--no-deps", "--no-build-isolation", str(app)], check=False)
+        if package.returncode:
+            print("repair failed safely: local package reinstall failed; rerun the verified bootstrapper", file=sys.stderr)
+            return package.returncode
+        startup_result = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                                         str(startup), "-Action", "install"], check=False)
+        if startup_result.returncode:
+            print("repair failed safely: startup registration failed", file=sys.stderr)
+            return startup_result.returncode
+        print("repair complete: managed package and startup registration restored")
         return 0
     if args.command == "uninstall":
         print("uninstall: run uninstall.ps1 from the verified release")

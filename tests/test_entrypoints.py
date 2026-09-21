@@ -23,3 +23,8 @@ def test_config_command_updates_one_axis(tmp_path, monkeypatch):
     assert cli.main(["config", "--axis", "left_x", "--invert", "on", "--dead-zone", "0.1"]) == 0
     config = load_config(tmp_path)
     assert config["axes"]["left_x"]["invert"] is True and config["axes"]["left_x"]["dead_zone"] == 0.1
+
+def test_repair_requires_complete_managed_install(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    assert cli.main(["repair"]) == 2
+    assert "managed files are incomplete" in capsys.readouterr().err

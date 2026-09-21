@@ -51,6 +51,8 @@ rcn-fpv config
 rcn-fpv config --mode mode2 --axis left_y --invert off --dead-zone 0.03
 ```
 
+`rcn-fpv repair` restores the managed local package and current-user startup registration. If the managed environment itself is missing, rerun the release-pinned bootstrap command.
+
 ## Security
 
 Driver installation is an explicit, elevated operation and must verify provider, signature, and matching hardware IDs before `pnputil`. Diagnostic exports redact user names and absolute paths. No game configuration is edited while FPV SkyDive is running.
