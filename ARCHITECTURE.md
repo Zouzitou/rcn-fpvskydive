@@ -16,7 +16,7 @@ bootstrap.ps1
               \________________ lifecycle / diagnostics ________________/
 ```
 
-- `discovery`: a bounded WMI query finds healthy DJI `For Protocol` interfaces. Every candidate, including RC-N2/RC-N3, must yield three checksum-valid 38-byte live-stick frames before the Xbox target is created; Debug interfaces are never activated. `driver.ps1` separately validates an explicitly supplied signed INF, checks `VID_2CA3`, invokes `pnputil` only after UAC approval, rescans, and requires the Protocol interface afterward.
+- `discovery`: a bounded WMI query finds healthy DJI `For Protocol` interfaces. Every candidate, including RC-N2/RC-N3, must yield three checksum-valid 38-byte live-stick frames before the Xbox target is created; Debug interfaces are never activated. `driver.ps1` separately validates an explicitly supplied DJI INF, checks `VID_2CA3`, verifies the referenced in-package catalog is signed by DJI or a trusted Microsoft hardware publisher, invokes `pnputil` only after UAC approval, rescans, and requires the Protocol interface afterward.
 - `transport`: opens and owns the selected Protocol COM port, detects busy/debug/wrong-port states, and emits reconnect events.
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with per-axis inversion, dead zone, trim, saturation, and response curve loaded from the managed state file; all buttons remain clear.

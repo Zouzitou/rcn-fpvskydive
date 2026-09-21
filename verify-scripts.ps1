@@ -15,3 +15,14 @@ foreach ($file in $files) {
   }
 }
 if ($failed) { exit 1 }
+
+# The driver package validator must fail before elevation or pnputil when an
+# apparently DJI-shaped package is incomplete. This fixture uses a Provider
+# token deliberately, covering normal INF string indirection as well.
+$fixture = Join-Path $PSScriptRoot 'tests\driver\missing-catalog.inf'
+$driverOutput = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'driver.ps1') -Action validate -InfPath $fixture 2>&1
+if ($LASTEXITCODE -eq 0 -or ($driverOutput -join "`n") -notmatch 'referenced catalog.*missing') {
+  Write-Error 'driver.ps1 accepted or misclassified a package with a missing catalog.'
+  exit 1
+}
+Write-Host 'OK driver package rejection gate'

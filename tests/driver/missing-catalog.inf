@@ -1,0 +1,15 @@
+[Version]
+Signature="$Windows NT$"
+Class=Ports
+Provider=%DjiProvider%
+CatalogFile=dji-vcom.cat
+
+[Manufacturer]
+%DjiProvider%=DjiDevices,NTamd64
+
+[DjiDevices.NTamd64]
+%DeviceName%=Install,USB\VID_2CA3&PID_1020&MI_02
+
+[Strings]
+DjiProvider="DJI"
+DeviceName="DJI VCOM Protocol"

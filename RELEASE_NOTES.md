@@ -1,14 +1,9 @@
-# RCN FPV SkyDive v0.1.58
+# RCN FPV SkyDive v0.1.59
 
 ## Highlights
 
-- The README is now a compact visual flight page with GitHub badges, a controller-to-game signal-flow graphic, and a four-step pilot quick-start.
-- It refers to your DJI RC-N controller naturally instead of leading with implementation and model-status detail.
-- The installer now configures FPV SkyDive’s normal Steam Play button to start the bridge automatically.
-- The README now uses shareable “latest installer” commands, so a command posted today installs the current release later too.
-- The project is now explicitly licensed under GNU AGPLv3.
-- Added a shared project instruction contract for Codex, Claude, and Gemini contributors.
-- The release-note template and mandatory release-note checks remain in place for every future release.
+- Driver installation now validates the official Windows driver-package trust boundary correctly: the DJI INF must reference a present, valid catalog signed by DJI or a trusted Microsoft hardware publisher before the installer can request UAC or call `pnputil`.
+- Driver packages with a missing catalog, unsafe catalog path, invalid signature, non-DJI signer, wrong provider, or wrong DJI USB vendor ID are rejected before installation.
 
 ## Flight notes
 
