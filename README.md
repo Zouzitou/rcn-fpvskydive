@@ -1,55 +1,56 @@
 # RCN FPV SkyDive
 
-Use your **DJI RC-N1** as an Xbox controller in **FPV SkyDive** on Windows.
+[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![Latest release](https://img.shields.io/github/v/release/Zouzitou/rcn-fpvskydive?display_name=tag&logo=github)](https://github.com/Zouzitou/rcn-fpvskydive/releases)
+[![Rust](https://img.shields.io/badge/runtime-Rust-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![No login startup](https://img.shields.io/badge/bridge-game--only-ff8c00)](README.md#fly)
 
-Plug in the controller, start the game, and fly. The bridge starts only with FPV SkyDive and disappears again when the game closes.
+### Turn your DJI RC-N controller into an Xbox controller for FPV SkyDive.
 
-> **Supported today:** RC-N1, hardware-tested. RC-N2 and RC-N3 are detected safely but are not claimed as supported until their real USB stick protocol is tested.
-
-## Before you start
-
-You need a Windows 10/11 PC, FPV SkyDive installed through Steam, a powered-on RC-N1, and a data-capable USB-C cable. You do **not** need Python, a terminal setup, or administrator rights for the normal install.
-
-## Get flying
-
-### 1. Install
-
-Open **PowerShell**, paste this, and wait for the orange “Installation Complete” screen:
-
-```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.52/bootstrap.ps1 | iex
+```text
+ DJI RC-N controller  ── USB ──▶  RCN FPV SkyDive  ──▶  Xbox 360 controller  ──▶  FPV SkyDive
 ```
 
-It is a fixed, SHA-256-verified release installer. It does not silently install a driver, change your game bindings, show your Windows username, or run the bridge at login.
+## Fly
 
-### 2. Plug in your controller
+**You need:** Windows 10/11 · FPV SkyDive on Steam · your powered-on RC-N controller · a USB-C data cable.
 
-Power on the RC-N1 and connect it with a proper USB data cable. If Windows shows a `DEVICE USB VCOM For Protocol` port, you are ready for the next step. The bridge deliberately ignores the Debug port.
+### 1 — Install
 
-### 3. Launch FPV SkyDive
+Open **PowerShell**, paste this, and wait for the orange completion screen:
 
-Click **Start Menu → RCN FPV SkyDive**. It waits for the virtual Xbox controller, starts FPV SkyDive, and stops the bridge after you exit the game.
+```powershell
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.53/bootstrap.ps1 | iex
+```
 
-Want to launch straight from Steam instead? Add this once in **FPV SkyDive → Properties → General → Launch Options**:
+### 2 — Connect
+
+Power on your controller and plug it in. The app checks for a healthy controller connection before creating the virtual Xbox controller.
+
+### 3 — Launch
+
+Click **Start Menu → RCN FPV SkyDive**. The bridge starts with the game and closes when you exit it.
+
+### 4 — Calibrate in FPV SkyDive
+
+| Stick movement | Bind as |
+| --- | --- |
+| Left up/down | Throttle |
+| Left left/right | Yaw |
+| Right up/down | Pitch |
+| Right left/right | Roll |
+
+Choose any Arm, Pause, Restart, or Recover bindings in FPV SkyDive itself.
+
+## Want to launch from Steam?
+
+Add this once in **FPV SkyDive → Properties → General → Launch Options**:
 
 ```text
 cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%
 ```
 
-### 4. Calibrate once in-game
-
-In FPV SkyDive, open its controller/calibration settings and bind the four stick axes. The safe Mode 2 defaults are:
-
-| RC-N1 stick | Flight control |
-| --- | --- |
-| Left stick up/down | Throttle |
-| Left stick left/right | Yaw |
-| Right stick up/down | Pitch |
-| Right stick left/right | Roll |
-
-The bridge does not invent Arm, Pause, Restart, or Recover bindings—choose those in the game if you want them.
-
-## If something does not work
+## Need help?
 
 Open the Flight Console:
 
@@ -57,30 +58,23 @@ Open the Flight Console:
 & "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
 ```
 
-It tells you whether the RC-N1, virtual Xbox controller, and FPV SkyDive are ready. Press `v` to verify stick movement and `l` to launch the game. If the controller is not found, see the [troubleshooting guide](docs/TROUBLESHOOTING.md).
+Press `v` to check stick movement, `l` to launch, or read the [troubleshooting guide](docs/TROUBLESHOOTING.md). It never installs a driver or edits game bindings without you choosing to do so.
 
-If Windows has no Protocol port, you may need DJI’s official VCOM driver. The app never installs it behind your back. Follow the deliberate driver instructions in [the troubleshooting guide](docs/TROUBLESHOOTING.md).
+## Built for flying, not background clutter
 
-## Safety and privacy
+| What it does | What it does not do |
+| --- | --- |
+| Starts the bridge with FPV SkyDive | Run at Windows login |
+| Sends neutral sticks on disconnect or exit | Leave a stuck input behind |
+| Verifies the downloaded release before installing | Print your Windows username during install |
+| Keeps your game bindings under your control | Change settings behind your back |
 
-- The bridge outputs neutral sticks whenever it starts, disconnects, or stops.
-- It runs only while FPV SkyDive is open—never at Windows login.
-- The installer is per-user and verifies the published release hash before installing it.
-- Your game bindings are never edited automatically.
+## Curious pilot / developer
 
-## For developers and curious pilots
-
-Want to inspect and compile the app yourself? Install stable Rust from [rustup.rs](https://rustup.rs), then run:
-
-```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.52/install-from-source.ps1 | iex
-```
-
-The same orange installer builds the tagged source locally and keeps its source/build log private on your machine. For architecture, acceptance evidence, and hardware test plans, see [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).
-
-To work on the Rust bridge:
+To inspect and build the tagged source locally, install Rust from [rustup.rs](https://rustup.rs), then run:
 
 ```powershell
-cargo test --manifest-path rust-bridge/Cargo.toml
-cargo build --release --manifest-path rust-bridge/Cargo.toml
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.53/install-from-source.ps1 | iex
 ```
+
+Architecture, acceptance evidence, and the hardware test plan live in [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).
