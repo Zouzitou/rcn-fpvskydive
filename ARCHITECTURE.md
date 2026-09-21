@@ -21,7 +21,7 @@ bootstrap.ps1
 - `protocol`: DuML framing, checksum validation, packet decoding, and live-frame timestamps. Unknown packets are retained as redacted counters, not printed continuously.
 - `mapping`: the established RC-N1 Mode 2 four-axis mapping with per-axis inversion, dead zone, trim, saturation, and response curve loaded from the managed state file; all buttons remain clear.
 - `gamepad`: native ViGEm adapter with neutral-on-start, neutral-on-smoke-test exit, and target removal when a session ends.
-- `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, persists the selected PnP instance ID, and remains neutral/awaiting until the device-specific four-axis live-input approval exists. It stops when the game process exits.
+- `lifecycle`: Steam's launch wrapper starts `watch` with FPV SkyDive, which rediscovers after serial failure or unplug/replug, persists the selected PnP instance ID, and remains neutral/awaiting until the device-specific four-axis live-input approval exists. Approval follows the PnP instance rather than a COM number, so a legitimate COM renumber does not invalidate it. It stops when the game process exits.
 
 ## Data flow
 

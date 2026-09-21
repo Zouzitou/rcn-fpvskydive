@@ -184,9 +184,9 @@ fn live_verification_valid(port: &str) -> bool {
     let Some(instance_id) = json_string_field(&contents, "instance_id") else {
         return false;
     };
-    let Some(verified_port) = json_string_field(&contents, "port") else {
+    if json_string_field(&contents, "port").is_none() {
         return false;
-    };
+    }
     let Some(verified_unix) = json_number_field(&contents, "verified_unix") else {
         return false;
     };
@@ -194,8 +194,8 @@ fn live_verification_valid(port: &str) -> bool {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|time| time.as_secs())
         .unwrap_or(0);
-    verified_port == port
-        && current_device_instance_id().as_deref() == Some(instance_id.as_str())
+    let _ = port;
+    current_device_instance_id().as_deref() == Some(instance_id.as_str())
         && now.saturating_sub(verified_unix) <= 30 * 24 * 60 * 60
 }
 
