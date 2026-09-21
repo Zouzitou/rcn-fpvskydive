@@ -9,6 +9,7 @@
 | Gamepad | Virtual Xbox self-test passes and cleans up | self-test result |
 | Bridge | Neutral startup, validated frames, reconnect, clean teardown, and singleton ownership | native integration result + mutex test + `bridge.json` |
 | Mapping | Configurable inversion, dead zone, trim, saturation, and curve | native mapping tests + `mapping.conf` |
+| Live input gate | Four-axis user movement required before watcher creates Xbox target | `verify-input` + `input-verification.json` |
 | Diagnostics | OS, driver, port, live frames, startup, Steam, process, and 100 log lines | `diagnose` output |
 | Steam launch | No login watcher; one bridge for FPV SkyDive only | wrapper start/exit test |
 | SkyDive | Steam wrapper and normal controller calibration | manual HIL checklist |

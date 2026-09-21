@@ -61,6 +61,10 @@ fn device_state_path() -> PathBuf {
     app_root().join("state").join("device.json")
 }
 
+fn verification_state_path() -> PathBuf {
+    app_root().join("state").join("input-verification.json")
+}
+
 fn log_line(message: &str) {
     let path = app_root().join("logs").join("bridge.log");
     let Some(parent) = path.parent() else { return };
@@ -147,6 +151,85 @@ fn persist_device_identity(port: &str) {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|time| time.as_secs())
             .unwrap_or(0)
+    );
+    let _ = fs::write(path, json);
+}
+
+fn json_string_field(contents: &str, field: &str) -> Option<String> {
+    let marker = format!("\"{field}\":\"");
+    let start = contents.find(&marker)? + marker.len();
+    let end = contents[start..].find('"')? + start;
+    Some(contents[start..end].to_string())
+}
+
+fn json_number_field(contents: &str, field: &str) -> Option<u64> {
+    let marker = format!("\"{field}\":");
+    let start = contents.find(&marker)? + marker.len();
+    let end = contents[start..]
+        .find(|character: char| !character.is_ascii_digit())
+        .map(|offset| start + offset)
+        .unwrap_or(contents.len());
+    contents[start..end].parse().ok()
+}
+
+fn current_device_instance_id() -> Option<String> {
+    let contents = fs::read_to_string(device_state_path()).ok()?;
+    json_string_field(&contents, "instance_id")
+}
+
+fn live_verification_valid(port: &str) -> bool {
+    let Ok(contents) = fs::read_to_string(verification_state_path()) else {
+        return false;
+    };
+    let Some(instance_id) = json_string_field(&contents, "instance_id") else {
+        return false;
+    };
+    let Some(verified_port) = json_string_field(&contents, "port") else {
+        return false;
+    };
+    let Some(verified_unix) = json_number_field(&contents, "verified_unix") else {
+        return false;
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|time| time.as_secs())
+        .unwrap_or(0);
+    verified_port == port
+        && current_device_instance_id().as_deref() == Some(instance_id.as_str())
+        && now.saturating_sub(verified_unix) <= 30 * 24 * 60 * 60
+}
+
+fn save_live_verification(port: &str, results: &[(&str, u16, u16, bool)]) {
+    let Some(instance_id) = current_device_instance_id() else {
+        return;
+    };
+    let path = verification_state_path();
+    let Some(parent) = path.parent() else { return };
+    if fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let axes = results
+        .iter()
+        .map(|(name, minimum, maximum, _)| {
+            format!(
+                "{{\"name\":\"{}\",\"min\":{},\"max\":{}}}",
+                escape_json(name),
+                minimum,
+                maximum
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let verified_unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|time| time.as_secs())
+        .unwrap_or(0);
+    let json = format!(
+        "{{\"port\":\"{}\",\"instance_id\":\"{}\",\"verified_unix\":{},\"axes\":[{}]}}",
+        escape_json(port),
+        escape_json(&instance_id),
+        verified_unix,
+        axes
     );
     let _ = fs::write(path, json);
 }
@@ -486,6 +569,7 @@ fn stick_axis(frame: protocol::StickFrame, index: usize) -> u16 {
 }
 
 fn verify_live_input(port: &str) -> Result<(), BridgeError> {
+    persist_device_identity(port);
     let mut serial = connect(port)?;
     let mut buffer = Vec::new();
     let mut chunk = [0u8; 4096];
@@ -542,6 +626,7 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
     }
     println!("]}}");
     if passed {
+        save_live_verification(port, &results);
         Ok(())
     } else {
         Err(BridgeError::NoLiveFrames)
@@ -670,6 +755,16 @@ fn watch() -> Result<(), BridgeError> {
         match discover_protocol_port() {
             Some(port) => {
                 persist_device_identity(&port);
+                if !live_verification_valid(&port) {
+                    publish_status(
+                        "awaiting_live_verification",
+                        Some(&port),
+                        0,
+                        Some("run verify-input and move all four sticks"),
+                    );
+                    thread::sleep(Duration::from_secs(1));
+                    continue;
+                }
                 publish_status("connecting", Some(&port), 0, None);
                 eprintln!("RCN bridge: using {port}");
                 if let Err(error) = run_bridge(&port, None, mapping) {
