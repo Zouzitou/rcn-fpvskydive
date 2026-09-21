@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Ref = 'v0.1.46')
+param([string]$Ref = 'v0.1.47')
 
 $ErrorActionPreference = 'Stop'
 $Repository = 'Zouzitou/rcn-fpvskydive'

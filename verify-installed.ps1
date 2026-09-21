@@ -21,8 +21,18 @@ $startupPath = Join-Path $Root 'state\startup.json'
 $startup = if (Test-Path -LiteralPath $startupPath) { Get-Content -LiteralPath $startupPath -Raw | ConvertFrom-Json } else { $null }
 if (-not $startup -or $startup.method -ne 'steam-launch-wrapper') { throw 'Login startup is not in the expected game-wrapper mode.' }
 
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Wrapper cmd.exe /d /c exit 0
-if ($LASTEXITCODE -ne 0) { throw "Wrapper lifecycle failed with exit code $LASTEXITCODE." }
+# Keep this harmless command alive long enough for the wrapper to observe its
+# process and exercise the normal post-game bridge cleanup path. A uniquely
+# named temporary copy prevents unrelated cmd.exe sessions from being mistaken
+# for the test game by the wrapper's deliberately strict path/name matching.
+$TestExe = Join-Path $env:TEMP ('rcn-wrapper-test-' + [guid]::NewGuid().ToString('N') + '.exe')
+Copy-Item -LiteralPath $env:ComSpec -Destination $TestExe -Force
+try {
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Wrapper $TestExe /d /c 'ping -n 3 127.0.0.1 > nul'
+  if ($LASTEXITCODE -ne 0) { throw "Wrapper lifecycle failed with exit code $LASTEXITCODE." }
+} finally {
+  Remove-Item -LiteralPath $TestExe -Force -ErrorAction SilentlyContinue
+}
 Start-Sleep -Milliseconds 500
 $watchers = @(Get-CimInstance Win32_Process -Filter "Name = 'rcn-bridge.exe'" | Where-Object {
   $_.ExecutablePath -eq $Bridge -and $_.CommandLine -like '* watch*'
