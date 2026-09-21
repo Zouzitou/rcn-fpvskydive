@@ -20,7 +20,7 @@ use windows::core::w;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | self-test | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | start | stop | repair | uninstall | self-test | verify-input --port COM12 | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -183,7 +183,7 @@ fn diagnose(redact: bool) -> Result<(), BridgeError> {
         "Get-CimInstance Win32_PnPSignedDriver | Where-Object { $_.DeviceID -match 'VID_2CA3' } | ForEach-Object { \"$($_.DeviceName)|$($_.DriverProviderName)|$($_.DriverVersion)|$($_.InfName)|signed=$($_.IsSigned)\" }",
     )?;
     let steam_output = run_powershell(
-        "$roots=@(); $steam=(Get-ItemProperty 'HKCU:\\Software\\Valve\\Steam' -ErrorAction SilentlyContinue).SteamPath; if($steam){$roots+=$steam; $vdf=Join-Path $steam 'steamapps\\libraryfolders.vdf'; if(Test-Path $vdf){$roots += [regex]::Matches((Get-Content $vdf -Raw),'\"path\"\\s+\"([^\"]+)\"') | ForEach-Object {$_.Groups[1].Value}}}; $roots | Select-Object -Unique | ForEach-Object { $p=Join-Path $_ 'steamapps\\common\\FPV SkyDive'; if(Test-Path $p){$p} }",
+        "$roots=@(); $keys=@('HKCU:\\Software\\Valve\\Steam','HKLM:\\SOFTWARE\\WOW6432Node\\Valve\\Steam','HKLM:\\SOFTWARE\\Valve\\Steam'); foreach($key in $keys){$item=Get-ItemProperty $key -ErrorAction SilentlyContinue; if($item.SteamPath){$roots+=$item.SteamPath}; if($item.InstallPath){$roots+=$item.InstallPath}; if($item.SteamExe){$roots+=(Split-Path $item.SteamExe)}}; Get-Process steam -ErrorAction SilentlyContinue | ForEach-Object { if($_.Path){$roots+=(Split-Path $_.Path)} }; $roots | Select-Object -Unique | ForEach-Object { $vdf=Join-Path $_ 'steamapps\\libraryfolders.vdf'; if(Test-Path $vdf){$roots += [regex]::Matches((Get-Content $vdf -Raw),'\"path\"\\s+\"([^\"]+)\"') | ForEach-Object {$_.Groups[1].Value}} }; $roots | Select-Object -Unique | ForEach-Object { $p=Join-Path $_ 'steamapps\\common\\FPV SkyDive'; if(Test-Path $p){$p} }",
     )?;
     let startup = fs::read_to_string(app_root().join("state").join("startup.json"))
         .unwrap_or_else(|_| "not_registered".to_string());
@@ -405,6 +405,92 @@ fn probe_live_frames(port: &str) -> Result<usize, BridgeError> {
         .count())
 }
 
+fn sample_frame(
+    serial: &mut dyn serialport::SerialPort,
+    buffer: &mut Vec<u8>,
+    chunk: &mut [u8],
+) -> Result<Option<protocol::StickFrame>, BridgeError> {
+    serial.write_all(&read_sticks())?;
+    if let Ok(count) = serial.read(chunk) {
+        buffer.extend_from_slice(&chunk[..count]);
+    }
+    Ok(drain_frames(buffer)
+        .into_iter()
+        .find_map(|packet| parse_sticks(&packet).ok()))
+}
+
+fn stick_axis(frame: protocol::StickFrame, index: usize) -> u16 {
+    match index {
+        0 => frame.left_h,
+        1 => frame.left_v,
+        2 => frame.right_h,
+        _ => frame.right_v,
+    }
+}
+
+fn verify_live_input(port: &str) -> Result<(), BridgeError> {
+    let mut serial = connect(port)?;
+    let mut buffer = Vec::new();
+    let mut chunk = [0u8; 4096];
+    let baseline_deadline = Instant::now() + Duration::from_secs(3);
+    let baseline = loop {
+        if let Some(frame) = sample_frame(&mut *serial, &mut buffer, &mut chunk)? {
+            break frame;
+        }
+        if Instant::now() >= baseline_deadline {
+            return Err(BridgeError::NoLiveFrames);
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let axes = [
+        ("left horizontal (yaw)", 0usize),
+        ("left vertical (throttle)", 1usize),
+        ("right horizontal (roll)", 2usize),
+        ("right vertical (pitch)", 3usize),
+    ];
+    let mut results = Vec::new();
+    for (name, axis_index) in axes {
+        print!("Move {name} through its range, then press Enter: ");
+        std::io::stdout().flush()?;
+        let mut response = String::new();
+        std::io::stdin().read_line(&mut response)?;
+        let start = Instant::now();
+        let mut minimum = stick_axis(baseline, axis_index);
+        let mut maximum = minimum;
+        while start.elapsed() < Duration::from_secs(3) {
+            if let Some(frame) = sample_frame(&mut *serial, &mut buffer, &mut chunk)? {
+                let value = stick_axis(frame, axis_index);
+                minimum = minimum.min(value);
+                maximum = maximum.max(value);
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+        let changed = maximum.saturating_sub(minimum) >= 100;
+        results.push((name, minimum, maximum, changed));
+    }
+    let passed = results.iter().all(|(_, _, _, changed)| *changed);
+    println!(
+        "{{\"live_input_verification\":\"{}\",\"axes\":[",
+        if passed { "passed" } else { "failed" }
+    );
+    for (index, (name, minimum, maximum, changed)) in results.iter().enumerate() {
+        println!(
+            "  {{\"name\":\"{}\",\"min\":{},\"max\":{},\"changed\":{}}}{}",
+            name,
+            minimum,
+            maximum,
+            changed,
+            if index + 1 == results.len() { "" } else { "," }
+        );
+    }
+    println!("]}}");
+    if passed {
+        Ok(())
+    } else {
+        Err(BridgeError::NoLiveFrames)
+    }
+}
+
 fn discover_protocol_port() -> Option<String> {
     let query = "Get-CimInstance Win32_PnPEntity | Where-Object { $_.Status -eq 'OK' -and $_.PNPDeviceID -match 'VID_2CA3' -and $_.Name -match 'For Protocol.*\\(COM[0-9]+\\)' } | Sort-Object Name | Select-Object -First 1 -ExpandProperty Name";
     let output = Command::new("powershell.exe")
@@ -565,6 +651,10 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "self-test" {
         return self_test_gamepad();
+    }
+    if command == "verify-input" {
+        let port = port_from_args()?;
+        return verify_live_input(&port);
     }
     if command == "watch" {
         return watch();

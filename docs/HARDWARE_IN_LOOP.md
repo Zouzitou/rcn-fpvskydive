@@ -17,6 +17,7 @@ An initial RC-N1 native serial capture and native virtual-controller smoke test 
 | Unplug/replug and COM renumber | [ ] | [ ] | [ ] | Re-resolve instance ID and reconnect |
 | Sleep/resume | [ ] | [ ] | [ ] | Neutral during gap, reconnect after resume |
 | Four-axis live verification | [ ] | [ ] | [ ] | All axes change plausibly |
+| Native guided verifier | [ ] | [ ] | [ ] | `verify-input` passes all four axes |
 | FPV SkyDive calibration | [ ] | [ ] | [ ] | Mapping confirmed; Arm/Pause untouched |
 | Steam game launch/exit | [ ] | [ ] | [ ] | Exactly one bridge while playing; none after game exit |
 | Repair and uninstall | [ ] | [ ] | [ ] | Idempotent repair; reversible removal |
