@@ -304,6 +304,31 @@ fn redact_text(value: &str) -> String {
             }
         }
     }
+    let mut result = String::with_capacity(redacted.len());
+    let mut offset = 0;
+    while offset < redacted.len() {
+        let bytes = redacted.as_bytes();
+        let is_drive_path = offset + 2 < bytes.len()
+            && bytes[offset].is_ascii_alphabetic()
+            && bytes[offset + 1] == b':'
+            && bytes[offset + 2] == b'\\';
+        if is_drive_path {
+            let path_end = redacted[offset..]
+                .find(|character: char| matches!(character, '\r' | '\n' | '|' | '"'))
+                .map(|index| offset + index)
+                .unwrap_or(redacted.len());
+            result.push_str("%REDACTED_PATH%");
+            offset = path_end;
+        } else {
+            let character = redacted[offset..]
+                .chars()
+                .next()
+                .expect("offset is always a valid UTF-8 boundary");
+            result.push(character);
+            offset += character.len_utf8();
+        }
+    }
+    redacted = result;
     redacted
 }
 
@@ -1122,6 +1147,14 @@ mod status_tests {
         };
         let value = format!("{}\\RCN-FPVSkyDive", local_app_data.to_string_lossy());
         assert_eq!(redact_text(&value), "%LOCALAPPDATA%\\RCN-FPVSkyDive");
+    }
+
+    #[test]
+    fn redacts_non_profile_drive_paths() {
+        assert_eq!(
+            redact_text("path=Z:\\SteamLibrary\\steamapps\\common\\FPV.SkyDive|ready"),
+            "path=%REDACTED_PATH%|ready"
+        );
     }
 
     #[test]

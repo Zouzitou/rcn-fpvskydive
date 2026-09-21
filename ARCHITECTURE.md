@@ -56,7 +56,7 @@ The installer is idempotent and has no login-start component. Steam starts the b
 - Disconnect/reconnect and COM renumbering return to connected state with neutral output during gaps; repeated transport failures use the tested 1/2/4/8/16/32-second bounded retry policy.
 - Duplicate bridge startup is rejected by a Windows named mutex and leaves exactly one owner.
 - Self-test always releases axes/buttons and reports cleanup failures.
-- `diagnose` reports OS/runtime, signed driver records, Protocol port, live frames, startup state, Steam detection, process identity, mapping path, and the last 100 log lines. A redacted export remains a release gate.
+- `diagnose` reports OS/runtime, signed driver records, Protocol port, live frames, startup state, Steam detection, process identity, mapping path, and the last 100 log lines. Redacted exports remove both user-profile and arbitrary drive-rooted local paths.
 
 ### Hardware-in-the-loop
 

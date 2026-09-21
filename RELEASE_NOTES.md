@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.64
+# RCN FPV SkyDive v0.1.65
 
 ## Highlights
 
@@ -9,6 +9,7 @@
 - The `repair` command now performs a verified reinstall of its pinned release payload instead of only repairing launcher state.
 - Removed the unused Python bridge and pytest suite so the public source tree matches the shipped native Rust runtime.
 - Added native-tested deterministic Protocol-port ranking: Debug ports are rejected and COM numbers are discovered, never assumed.
+- Redacted diagnostics now hide arbitrary local drive paths, including Steam libraries outside the user profile.
 
 ## Flight notes
 
