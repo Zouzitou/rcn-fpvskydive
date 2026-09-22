@@ -117,8 +117,8 @@ Copy-TrackedSource -Destination $sourcePayload
 New-DeterministicZip -Source $sourcePayload -Destination $sourceZip
 $sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceZip).Hash
 $sourceInstaller = Get-Content -LiteralPath 'install-from-source.ps1' -Raw
-$sourceInstaller = [regex]::Replace($sourceInstaller, "releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+-source\\.zip", "releases/download/$tag/rcn-fpvskydive-$tag-source.zip")
-$sourceInstaller = [regex]::Replace($sourceInstaller, "(?m)^\$ExpectedSourceSha256 = '[^']+'$", ('$' + "ExpectedSourceSha256 = '$sourceHash'"))
+$sourceInstaller = [regex]::Replace($sourceInstaller, 'releases/download/v[0-9.]+/rcn-fpvskydive-v[0-9.]+-source\.zip', "releases/download/$tag/rcn-fpvskydive-$tag-source.zip")
+$sourceInstaller = [regex]::Replace($sourceInstaller, '(?m)^\$ExpectedSourceSha256 = ''[^'']+''$', ('$' + "ExpectedSourceSha256 = '$sourceHash'"))
 Set-Content -LiteralPath 'install-from-source.ps1' -Value $sourceInstaller -NoNewline
 New-Item -ItemType Directory -Force -Path (Join-Path $payload 'bin') | Out-Null
 Copy-Item -LiteralPath $bridge -Destination (Join-Path $payload 'bin\rcn-bridge.exe') -Force

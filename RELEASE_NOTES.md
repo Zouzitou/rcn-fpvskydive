@@ -1,10 +1,11 @@
-# RCN FPV SkyDive v0.1.70
+# RCN FPV SkyDive v0.1.71
 
 ## Highlights
 
 - Fixed the orange installer banner on Windows PowerShell so it no longer fails before installation.
 - Rebuilt the native bridge without local Cargo-cache paths or Windows usernames embedded in it.
 - The optional local-source build now downloads a release-pinned, SHA-256-verified source ZIP and checks its built executable for a local username before install.
+- Fixed the source-installer package references so its download and verification details always match the published release.
 - Releases now refuse unreviewed untracked files instead of staging everything automatically, and common secret-file patterns are ignored.
 
 ## Flight notes
