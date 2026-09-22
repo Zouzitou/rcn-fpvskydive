@@ -18,6 +18,7 @@ RC-N1 evidence is recorded in [HARDWARE_EVIDENCE_RC_N1.md](HARDWARE_EVIDENCE_RC_
 | Sleep/resume | [ ] | [ ] | [ ] | Neutral during gap, reconnect after resume |
 | Four-axis live verification | [x] | [ ] | [ ] | All axes change plausibly |
 | Native guided verifier | [x] | [ ] | [ ] | `verify-input` passes all four axes |
+| FPV SkyDive controller detection and default axis view | [x] | [ ] | [ ] | XInput Gamepad 1 and four stick axes visible; no bindings changed |
 | FPV SkyDive calibration | [ ] | [ ] | [ ] | Mapping confirmed; Arm/Pause untouched |
 | FPV game launch + bridge presence | [x] | [ ] | [ ] | Running game, connected bridge, and Xbox target verified together |
 | Steam Library launch/exit | [ ] | [ ] | [ ] | Exactly one bridge while playing; none after game exit |

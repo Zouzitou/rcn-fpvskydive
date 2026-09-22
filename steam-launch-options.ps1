@@ -125,10 +125,26 @@ function Remove-LaunchOptions {
 
 function Write-VdfText { param([string]$Path, [string]$Text, [object]$Encoding) [IO.File]::WriteAllText($Path, $Text, $Encoding) }
 
+function Start-PendingGameBridge {
+  $bridge = Join-Path $Root 'bin\rcn-bridge.exe'
+  if (-not (Test-Path -LiteralPath $bridge -PathType Leaf)) { return $null }
+  $watcher = @(Get-CimInstance Win32_Process -Filter "Name = 'rcn-bridge.exe'" -ErrorAction SilentlyContinue | Where-Object {
+    $_.ExecutablePath -eq $bridge -and $_.CommandLine -like '* watch*'
+  } | Select-Object -First 1)
+  if ($watcher.Count -gt 0) { return $null }
+  (Start-Process -FilePath $bridge -ArgumentList 'watch' -WindowStyle Hidden -PassThru).Id
+}
+
+function Stop-PendingGameBridge {
+  param([Nullable[int]]$ProcessId)
+  if ($null -eq $ProcessId) { return }
+  Get-Process -Id $ProcessId -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
 if (-not $ConfigPath -and (Get-Process -Name steam -ErrorAction SilentlyContinue)) {
   if ($Action -eq 'status') {
     $pending = Test-Path -LiteralPath $PendingPath
-    [pscustomobject]@{ configured = $false; pending = $pending; detail = if ($pending) { 'Steam Play setup will finish after Steam exits.' } else { 'Steam is running; Steam Play setup is not yet configured.' } } | ConvertTo-Json
+    [pscustomobject]@{ configured = $false; pending = $pending; detail = if ($pending) { 'Steam Play setup will finish after Steam exits; the pending worker starts the bridge for an FPV SkyDive session meanwhile.' } else { 'Steam is running; Steam Play setup is not yet configured.' } } | ConvertTo-Json
     exit 0
   }
   if ($Action -eq 'remove') { throw 'Close Steam completely, then run uninstall again so the original Steam launch option can be restored safely.' }
@@ -140,10 +156,25 @@ if (-not $ConfigPath -and (Get-Process -Name steam -ErrorAction SilentlyContinue
       $worker = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-Action', 'install', '-WaitForSteamExit') -WindowStyle Hidden -PassThru
       @{ pid = $worker.Id; state = 'waiting_for_steam_exit'; timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath $PendingPath
     }
-    [pscustomobject]@{ configured = $false; pending = $true; detail = 'Steam Play setup will finish automatically after Steam exits.' } | ConvertTo-Json
+    [pscustomobject]@{ configured = $false; pending = $true; detail = 'Steam Play setup will finish automatically after Steam exits; the worker also covers an FPV SkyDive session in the meantime.' } | ConvertTo-Json
     exit 0
   }
-  while (Get-Process -Name steam -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 2 }
+  $ownedBridgePid = $null
+  $lastGameSeen = [DateTime]::MinValue
+  try {
+    while (Get-Process -Name steam -ErrorAction SilentlyContinue) {
+      if (Get-Process -Name 'FPV.SkyDive' -ErrorAction SilentlyContinue) {
+        $lastGameSeen = Get-Date
+        if ($null -eq $ownedBridgePid) { $ownedBridgePid = Start-PendingGameBridge }
+      } elseif ($null -ne $ownedBridgePid -and ((Get-Date) - $lastGameSeen).TotalSeconds -ge 5) {
+        Stop-PendingGameBridge -ProcessId $ownedBridgePid
+        $ownedBridgePid = $null
+      }
+      Start-Sleep -Seconds 2
+    }
+  } finally {
+    Stop-PendingGameBridge -ProcessId $ownedBridgePid
+  }
 }
 
 $configs = @(Get-ConfigPaths)

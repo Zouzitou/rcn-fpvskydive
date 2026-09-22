@@ -13,6 +13,6 @@
 | Diagnostics | OS, driver, port, live frames, startup, Steam, process, and 100 log lines | `diagnose` output |
 | Flight console | Responsive native dashboard restores terminal on exit, shows live health, and gates unsafe actions | `tui` smoke test + manual action review |
 | Steam launch | No login watcher; one bridge survives FPV SkyDive's Steam-to-game handoff and exits with the game | wrapper lifecycle test + v0.1.39 HIL evidence |
-| SkyDive | Steam wrapper, game input selection, and normal controller calibration | manual HIL checklist; only process-lifetime HIL is complete |
+| SkyDive | Steam wrapper, game input selection, and normal controller calibration | RC-N1 in-game XInput detection and four-axis view recorded; calibration and normal Steam-wrapper launch/exit remain HIL gates |
 | Safety | Unsupported PID rejected; no controller outside game session | native status and lifecycle tests |
 | Release | Reproducible artifact, hash, uninstall, README | release checklist |

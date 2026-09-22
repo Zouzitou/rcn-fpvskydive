@@ -71,7 +71,7 @@ $SteamSetupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (J
 $SteamSetupExit = $LASTEXITCODE
 $SteamSetup = $null
 try { $SteamSetup = ($SteamSetupOutput | Out-String | ConvertFrom-Json) } catch { }
-if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Write-InstallerText '     Steam is open; Play setup will finish automatically when Steam closes.' 'Amber' }
+if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Write-InstallerText '     Steam is open; the bridge is covered now and Play setup will finish automatically when Steam closes.' 'Amber' }
 elseif ($SteamSetupExit -eq 0) { Write-InstallerText '     Steam Play is configured for FPV SkyDive.' 'Green' }
 else { Write-InstallerText '     Steam Play setup could not finish. Run the installer again when Steam is closed.' 'Amber' }
 $StartupOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'startup.ps1') -Action install 2>&1
@@ -91,6 +91,6 @@ try {
 } catch { Write-InstallerText '     Start Menu shortcut was unavailable; the Steam launch option still works.' 'Amber' }
 if (-not $SourceBuild) { Set-InstallerStep 5 'Finishing safely' 'No controller driver was installed or changed.' }
 if (-not $SelfTestPassed) { Write-InstallerText '     Virtual Xbox self-test needs attention. Check ViGEmBus before flying.' 'Amber' }
-if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi 'Steam Play will be ready automatically after Steam closes once.' }
+if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi 'The bridge is ready for this session; Steam Play setup will finish automatically after Steam closes once.' }
 elseif ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Open FPV SkyDive with the normal Steam Play button.' }
 else { Complete-InstallerUi 'Start Menu works now; Steam Play can be repaired by rerunning this installer.' }

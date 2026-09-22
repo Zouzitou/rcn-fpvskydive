@@ -43,7 +43,7 @@ Click **Play** in Steam. The installer configures FPV SkyDive’s Steam entry to
 
 Choose any Arm, Pause, Restart, or Recover bindings in FPV SkyDive itself.
 
-If Steam is open during installation, setup waits in the background and safely updates FPV SkyDive’s launch option the next time Steam closes. You do not need to copy/paste launch options or rerun the installer. Existing FPV SkyDive launch arguments are preserved.
+If Steam is open during installation, setup waits in the background and safely updates FPV SkyDive’s launch option the next time Steam closes. The same one-shot worker also starts the bridge if you open FPV SkyDive before then. You do not need to copy/paste launch options or rerun the installer. Existing FPV SkyDive launch arguments are preserved.
 
 ## Need help?
 
