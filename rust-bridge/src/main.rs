@@ -841,6 +841,29 @@ fn discover_protocol_port() -> Option<String> {
 }
 
 fn self_test_gamepad() -> Result<(), BridgeError> {
+    let mut last_error = None;
+    const MAX_ATTEMPTS: usize = 30;
+    for attempt in 0..MAX_ATTEMPTS {
+        match self_test_gamepad_once() {
+            Ok(()) => {
+                println!(
+                    "{{\"virtual_gamepad_test\":\"passed\",\"cleanup\":\"neutral update sent\"}}"
+                );
+                return Ok(());
+            }
+            Err(error @ BridgeError::Vigem(ClientError::Bus(BusError::TargetNotReady { .. })))
+                if attempt + 1 < MAX_ATTEMPTS =>
+            {
+                last_error = Some(error);
+                thread::sleep(Duration::from_millis(200));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Err(last_error.expect("retry loop must record the transient ViGEm target error"))
+}
+
+fn self_test_gamepad_once() -> Result<(), BridgeError> {
     let client = connect_vigem()?;
     let target = new_ready_target(&client)?;
     let pulse = X360Report {
@@ -849,7 +872,6 @@ fn self_test_gamepad() -> Result<(), BridgeError> {
     };
     target.update(&pulse)?;
     target.update(&X360Report::default())?;
-    println!("{{\"virtual_gamepad_test\":\"passed\",\"cleanup\":\"neutral update sent\"}}");
     Ok(())
 }
 

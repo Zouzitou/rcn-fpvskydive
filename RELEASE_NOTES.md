@@ -1,10 +1,8 @@
-# RCN FPV SkyDive v0.1.79
+# RCN FPV SkyDive v0.1.80
 
 ## Highlights
 
-- Fixed Flight Console navigation: arrow keys and j/k now respond immediately while game and virtual-controller checks happen in the background.
-- Fixed the guided stick-check return screen. It now returns to the Flight Console after any key, whether the check passes or reports a problem.
-- Source builds now use the same five-step pilot setup flow as the normal installer, including Steam Play setup, controller detection, practical connection tips, and the optional four-stick check.
+- Made the virtual Xbox self-test retry a temporary Windows readiness delay across its entire test cycle. This prevents a false failure when ViGEm accepts the controller briefly after its first status response.
 
 ## Flight notes
 
@@ -13,9 +11,8 @@
 
 ## Verification
 
-- PowerShell script parsing and the Windows PowerShell installer-banner regression check passed.
 - All 13 Rust unit tests passed.
-- A Rust release build passed.
+- A Rust release build and live virtual-Xbox self-test passed.
 - The published binary and source ZIPs will be SHA-256 verified after publication.
 
 ## Install or update
