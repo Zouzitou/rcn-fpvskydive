@@ -21,7 +21,7 @@
 Open **PowerShell**, paste this, and wait for the orange completion screen:
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/master/bootstrap.ps1 | iex
+irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1 | iex
 ```
 
 ### 2 — Connect

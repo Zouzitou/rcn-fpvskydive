@@ -73,6 +73,6 @@ git commit -m "Prepare $tag release"
 if ($LASTEXITCODE -ne 0) { throw 'Git commit failed; release cancelled.' }
 git push
 if ($LASTEXITCODE -ne 0) { throw 'Git push failed; release cancelled.' }
-gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes-file $NotesPath
+gh release create $tag $zip (Join-Path $stage 'SHA256SUMS.txt') 'bootstrap.ps1' --repo Zouzitou/rcn-fpvskydive --title "RCN FPV SkyDive $tag" --notes-file $NotesPath
 if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
 Write-Host "Published $tag with SHA-256 $hash"

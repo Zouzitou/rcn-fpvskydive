@@ -1,8 +1,9 @@
-# RCN FPV SkyDive v0.1.68
+# RCN FPV SkyDive v0.1.69
 
 ## Highlights
 
 - Fixed the public one-line installer URLs to follow the repository's actual `master` default branch instead of a nonexistent `main` branch.
+- The one-line installer now uses the GitHub Releases `latest` bootstrap asset, avoiding stale raw-branch caching while still verifying the pinned release ZIP hash.
 
 - The bridge now makes an explicit neutral Xbox-stick update on every runtime exit path after the virtual controller is created, including a transport or output error.
 - Driver installation continues to validate the official Windows driver-package trust boundary before UAC or `pnputil`.
@@ -32,5 +33,5 @@
 ## Install or update
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/master/bootstrap.ps1 | iex
+irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1 | iex
 ```
