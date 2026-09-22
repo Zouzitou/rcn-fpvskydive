@@ -21,4 +21,5 @@ release/
 release-next/
 release-*
 .build-check/
+.public-audit-*/
 rust-bridge/target/

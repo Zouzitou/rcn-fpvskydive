@@ -110,7 +110,7 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 }
 if (-not $selfTestPassed) { throw 'Native virtual-controller self-test failed; release cancelled.' }
 $sourceInstaller = Get-Content -LiteralPath 'install-from-source.ps1' -Raw
-$sourceInstaller = [regex]::Replace($sourceInstaller, '(?m)^param\(\[string\]\$Ref = ''v[0-9.]+''\)$', "param([string]`$Ref = '$tag')")
+$sourceInstaller = [regex]::Replace($sourceInstaller, '(?m)^\$Ref = ''v[0-9.]+''$', ('$' + "Ref = '$tag'"))
 Set-Content -LiteralPath 'install-from-source.ps1' -Value $sourceInstaller -NoNewline
 New-Item -ItemType Directory -Force -Path $sourcePayload | Out-Null
 Copy-TrackedSource -Destination $sourcePayload
