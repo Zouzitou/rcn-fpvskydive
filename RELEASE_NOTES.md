@@ -1,8 +1,11 @@
-# RCN FPV SkyDive v0.1.80
+# RCN FPV SkyDive v0.1.81
 
 ## Highlights
 
-- Made the virtual Xbox self-test retry a temporary Windows readiness delay across its entire test cycle. This prevents a false failure when ViGEm accepts the controller briefly after its first status response.
+- The Flight Console now enables stick verification whenever FPV SkyDive is closed, even if an old status file still says the bridge is connected.
+- Stick verification automatically clears a leftover game bridge session before opening the controller port.
+- The installer now hides the raw JSON verification report and shows a concise four-direction result instead.
+- Updated the stick-check wording to tell pilots to close FPV SkyDive, not to close the bridge.
 
 ## Flight notes
 

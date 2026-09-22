@@ -79,7 +79,7 @@ impl Action {
             }
             Self::GameCheck => "Read-only check for the game, bridge, and virtual Xbox controller.",
             Self::VerifySticks => {
-                "Guided four-axis movement check. Requires the bridge to be stopped."
+                "Guided four-axis movement check. Close FPV SkyDive before starting it."
             }
             Self::SelfTest => {
                 "Creates a temporary neutral Xbox target. Disabled during a live session."
@@ -225,7 +225,7 @@ impl App {
         match action {
             Action::Launch => !self.snapshot.game_running,
             Action::GameCheck => self.snapshot.game_running,
-            Action::VerifySticks => self.snapshot.bridge_state != "connected",
+            Action::VerifySticks => !self.snapshot.game_running,
             Action::SelfTest => {
                 !self.snapshot.game_running && self.snapshot.bridge_state != "connected"
             }
@@ -367,9 +367,19 @@ fn run_action(terminal: &mut UiTerminal, app: &mut App, action: Action) -> Resul
     let result = match action {
         Action::Launch => open_fpv(),
         Action::GameCheck => game_check(),
-        Action::VerifySticks => discover_protocol_port()
-            .ok_or(BridgeError::NoProtocolPort)
-            .and_then(|port| verify_live_input(&port)),
+        Action::VerifySticks => {
+            let stop_result = if app.snapshot.bridge_state == "connected" {
+                println!("The game is closed; clearing its bridge session first...");
+                stop_watch()
+            } else {
+                Ok(())
+            };
+            stop_result.and_then(|_| {
+                discover_protocol_port()
+                    .ok_or(BridgeError::NoProtocolPort)
+                    .and_then(|port| verify_live_input(&port))
+            })
+        }
         Action::SelfTest => self_test_gamepad(),
         Action::Diagnostics => crate::diagnose(true),
         Action::Mapping => Command::new("notepad.exe")

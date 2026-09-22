@@ -112,8 +112,14 @@ if ($DiagnosticExit -eq 0 -and $PortMatch.Success) {
   Write-InstallerTip 'Move each stick when prompted. Press Enter after each movement.'
   $StickChoice = Read-Host 'Press Enter to check your sticks, or type S then Enter to skip for now'
   if ($StickChoice -notmatch '^[sS]$') {
-    & $Bridge verify-input --port $Port
-    if ($LASTEXITCODE -eq 0) { Write-InstallerText -Text '     All four stick directions are responding.' -Tone 'Green' }
+    Write-InstallerText -Text '     Checking four stick directions...' -Tone 'Dim'
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = 'Continue'
+      $StickOutput = & $Bridge verify-input --port $Port 2>&1
+      $StickExit = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $PreviousErrorActionPreference }
+    if ($StickExit -eq 0) { Write-InstallerText -Text '     All four stick directions are responding.' -Tone 'Green' }
     else { Write-InstallerText -Text '     Stick check was not complete yet. You can retry it from the Flight Console.' -Tone 'Amber' }
   } else { Write-InstallerText -Text '     Stick check skipped. You can run it from the Flight Console whenever you are ready.' -Tone 'Amber' }
 } else {
