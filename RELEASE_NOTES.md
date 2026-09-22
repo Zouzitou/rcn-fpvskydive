@@ -1,11 +1,10 @@
-# RCN FPV SkyDive v0.1.82
+# RCN FPV SkyDive v0.1.83
 
 ## Highlights
 
-- The installer now distinguishes a completed setup from a setup waiting for Steam to close once.
-- The installer banner and PowerShell-facing text are ASCII-only, avoiding garbled characters in Windows PowerShell 5.1.
-- Steam setup failures now say that attention is needed instead of claiming installation is complete.
-- Windows controller detection keeps its localized-name matching without embedding non-ASCII PowerShell source text.
+- The installer now keeps the four-stick check interactive instead of hiding its prompts.
+- The stick check uses clear pilot-facing instructions and does not display raw diagnostic JSON during installation.
+- The installer only reports completion after the setup flow has actually finished.
 
 ## Flight notes
 
@@ -15,11 +14,12 @@
 ## Verification
 
 - All 13 Rust unit tests passed.
-- A Rust release build and live virtual-Xbox self-test passed.
-- The published binary and source ZIPs will be SHA-256 verified after publication.
+- PowerShell script checks passed.
+- A Rust release build and virtual-Xbox self-test passed.
+- Release artifacts will be privacy-scanned and SHA-256 verified by the local release script.
 
 ## Install or update
 
 ```powershell
-irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.83/bootstrap.ps1 | iex
 ```

@@ -22,7 +22,7 @@ use windows::core::HSTRING;
 #[derive(Debug, Error)]
 enum BridgeError {
     #[error(
-        "usage: rcn-bridge status | diagnose [--redact] | tui | start | stop | repair | uninstall | open-fpv | game-check | self-test | verify-input [--port COM12] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
+        "usage: rcn-bridge status | diagnose [--redact] | tui | start | stop | repair | uninstall | open-fpv | game-check | self-test | verify-input [--port COM12] [--installer] | watch | bridge-auto | probe --port COM12 | bridge --port COM12 | bridge-smoke --port COM12"
     )]
     Usage,
     #[error("no healthy DJI Protocol serial interface was found")]
@@ -664,6 +664,19 @@ fn verification_port_from_args() -> Result<String, BridgeError> {
     }
 }
 
+fn verification_installer_mode() -> Result<bool, BridgeError> {
+    let mut args = env::args().skip(2);
+    let first = args.next();
+    let second = args.next();
+    let third = args.next();
+    match (first.as_deref(), second.as_deref(), third.as_deref()) {
+        (None, None, None) => Ok(false),
+        (Some("--port"), Some(_), None) => Ok(false),
+        (Some("--port"), Some(_), Some("--installer")) => Ok(true),
+        _ => Err(BridgeError::Usage),
+    }
+}
+
 fn connect(port: &str) -> Result<Box<dyn serialport::SerialPort>, BridgeError> {
     let mut serial = serialport::new(port, 115_200)
         .timeout(Duration::from_millis(80))
@@ -712,7 +725,7 @@ fn stick_axis(frame: protocol::StickFrame, index: usize) -> u16 {
     }
 }
 
-fn verify_live_input(port: &str) -> Result<(), BridgeError> {
+fn verify_live_input(port: &str, installer_mode: bool) -> Result<(), BridgeError> {
     persist_device_identity(port);
     let mut serial = connect(port)?;
     let mut buffer = Vec::new();
@@ -727,12 +740,16 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
         }
         thread::sleep(Duration::from_millis(20));
     };
-    println!("Quick stick check: move the requested stick, then press Enter.");
+    if installer_mode {
+        println!("Move each stick through its range when prompted, then press Enter.");
+    } else {
+        println!("Quick stick check: move the requested stick, then press Enter.");
+    }
     let axes = [
-        ("1 of 4 - left stick left and right", 0usize),
-        ("2 of 4 - left stick up and down", 1usize),
-        ("3 of 4 - right stick left and right", 2usize),
-        ("4 of 4 - right stick up and down", 3usize),
+        ("left stick left and right", 0usize),
+        ("left stick up and down", 1usize),
+        ("right stick left and right", 2usize),
+        ("right stick up and down", 3usize),
     ];
     let mut results = Vec::new();
     for (name, axis_index) in axes {
@@ -765,21 +782,29 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
         results.push((name, minimum, maximum, changed));
     }
     let passed = results.iter().all(|(_, _, _, changed)| *changed);
-    println!(
-        "{{\"live_input_verification\":\"{}\",\"axes\":[",
-        if passed { "passed" } else { "failed" }
-    );
-    for (index, (name, minimum, maximum, changed)) in results.iter().enumerate() {
+    if installer_mode {
+        if passed {
+            println!("All four stick directions are responding.");
+        } else {
+            println!("The stick check did not detect movement on every axis.");
+        }
+    } else {
         println!(
-            "  {{\"name\":\"{}\",\"min\":{},\"max\":{},\"changed\":{}}}{}",
-            name,
-            minimum,
-            maximum,
-            changed,
-            if index + 1 == results.len() { "" } else { "," }
+            "{{\"live_input_verification\":\"{}\",\"axes\":[",
+            if passed { "passed" } else { "failed" }
         );
+        for (index, (name, minimum, maximum, changed)) in results.iter().enumerate() {
+            println!(
+                "  {{\"name\":\"{}\",\"min\":{},\"max\":{},\"changed\":{}}}{}",
+                name,
+                minimum,
+                maximum,
+                changed,
+                if index + 1 == results.len() { "" } else { "," }
+            );
+        }
+        println!("]}}");
     }
-    println!("]}}");
     if passed {
         save_live_verification(port, &results);
         Ok(())
@@ -1093,7 +1118,8 @@ fn main() -> Result<(), BridgeError> {
     }
     if command == "verify-input" {
         let port = verification_port_from_args()?;
-        return verify_live_input(&port);
+        let installer_mode = verification_installer_mode()?;
+        return verify_live_input(&port, installer_mode);
     }
     if command == "watch" {
         return watch();

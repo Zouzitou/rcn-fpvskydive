@@ -377,7 +377,7 @@ fn run_action(terminal: &mut UiTerminal, app: &mut App, action: Action) -> Resul
             stop_result.and_then(|_| {
                 discover_protocol_port()
                     .ok_or(BridgeError::NoProtocolPort)
-                    .and_then(|port| verify_live_input(&port))
+                    .and_then(|port| verify_live_input(&port, false))
             })
         }
         Action::SelfTest => self_test_gamepad(),
