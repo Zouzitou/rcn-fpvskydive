@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.73
+# RCN FPV SkyDive v0.1.74
 
 ## Highlights
 
@@ -8,6 +8,7 @@
 - Fixed the source-installer package references so its download and verification details always match the published release.
 - Fixed the advertised one-line source-installer command so it can run directly from PowerShell.
 - Fixed Windows PowerShell source-build output handling and ANSI display.
+- The README source-build command now uses the tested, latest-release form.
 - Releases now refuse unreviewed untracked files instead of staging everything automatically, and common secret-file patterns are ignored.
 
 ## Flight notes
