@@ -60,7 +60,7 @@ $SelfTest = @()
 $SelfTestPassed = $false
 if ($SourceBuild) { Set-InstallerStep 5 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
 else { Set-InstallerStep 3 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
-for ($attempt = 1; $attempt -le 5; $attempt++) {
+for ($attempt = 1; $attempt -le 10; $attempt++) {
   $PreviousErrorActionPreference = $ErrorActionPreference
   try {
     # ViGEm can report TargetNotReady briefly while its neutral test target is
@@ -97,8 +97,11 @@ try {
   $Link.Description = 'Start FPV SkyDive with the RCN virtual Xbox controller'
   $Link.Save()
 } catch { Write-InstallerText '     Start Menu shortcut was unavailable; the Steam launch option still works.' 'Amber' }
+if (-not $SelfTestPassed) {
+  Fail-InstallerUi 'The virtual Xbox test did not become ready. The bridge was not marked ready; rerun the installer after checking ViGEmBus.'
+  throw 'Virtual Xbox self-test did not pass; installation was not marked ready.'
+}
 if (-not $SourceBuild) { Set-InstallerStep 5 'Finishing safely' 'No controller driver was installed or changed.' }
-if (-not $SelfTestPassed) { Write-InstallerText '     Virtual Xbox self-test needs attention. Check ViGEmBus before flying.' 'Amber' }
 if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi 'The bridge is ready for this session; Steam Play setup will finish automatically after Steam closes once.' }
 elseif ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Open FPV SkyDive with the normal Steam Play button.' }
 else { Complete-InstallerUi 'Start Menu works now; Steam Play can be repaired by rerunning this installer.' }

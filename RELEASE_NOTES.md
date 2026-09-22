@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.76
+# RCN FPV SkyDive v0.1.77
 
 ## Highlights
 
@@ -11,6 +11,7 @@
 - The README source-build command now uses the tested, latest-release form.
 - The installer now retries a temporarily unready virtual Xbox target instead of letting Windows PowerShell stop on its diagnostic output.
 - The README’s latest-release commands now bypass stale CDN responses automatically.
+- The installer waits longer for a virtual Xbox target and no longer reports completion if that required self-test fails.
 - Releases now refuse unreviewed untracked files instead of staging everything automatically, and common secret-file patterns are ignored.
 
 ## Flight notes
