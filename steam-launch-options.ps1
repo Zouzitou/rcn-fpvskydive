@@ -213,12 +213,24 @@ if ($Action -eq 'install') {
   exit 0
 }
 
-if (-not (Test-Path -LiteralPath $StatePath)) { exit 0 }
-$state = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
-foreach ($entry in @($state.entries)) {
-  if (-not (Test-Path -LiteralPath $entry.config_path)) { continue }
-  $data = Get-VdfText $entry.config_path
-  $updated = Remove-LaunchOptions -Text $data.text -RestoreValue $entry.original_value -HadOriginal ([bool]$entry.had_original)
-  if ($updated -ne $data.text) { Write-VdfText -Path $entry.config_path -Text $updated -Encoding $data.encoding }
+if (Test-Path -LiteralPath $StatePath) {
+  $state = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
+  foreach ($entry in @($state.entries)) {
+    if (-not (Test-Path -LiteralPath $entry.config_path)) { continue }
+    $data = Get-VdfText $entry.config_path
+    $updated = Remove-LaunchOptions -Text $data.text -RestoreValue $entry.original_value -HadOriginal ([bool]$entry.had_original)
+    if ($updated -ne $data.text) { Write-VdfText -Path $entry.config_path -Text $updated -Encoding $data.encoding }
+  }
+} else {
+  # Recovery path: remove our wrapper when the app folder or saved state is gone.
+  foreach ($config in $configs) {
+    $data = Get-VdfText $config
+    $apps = Find-VdfBlock -Text $data.text -Key 'apps'
+    if ($null -eq $apps) { continue }
+    $app = Find-VdfBlock -Text $data.text -Key $AppId -From ($apps.open + 1) -To $apps.close
+    if ($null -eq $app) { continue }
+    $updated = Remove-LaunchOptions -Text $data.text -RestoreValue '' -HadOriginal $false
+    if ($updated -ne $data.text) { Write-VdfText -Path $config -Text $updated -Encoding $data.encoding }
+  }
 }
 Remove-Item -LiteralPath $StatePath -Force -ErrorAction SilentlyContinue
