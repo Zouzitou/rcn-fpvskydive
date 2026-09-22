@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.74
+# RCN FPV SkyDive v0.1.75
 
 ## Highlights
 
@@ -9,6 +9,7 @@
 - Fixed the advertised one-line source-installer command so it can run directly from PowerShell.
 - Fixed Windows PowerShell source-build output handling and ANSI display.
 - The README source-build command now uses the tested, latest-release form.
+- The installer now retries a temporarily unready virtual Xbox target instead of letting Windows PowerShell stop on its diagnostic output.
 - Releases now refuse unreviewed untracked files instead of staging everything automatically, and common secret-file patterns are ignored.
 
 ## Flight notes

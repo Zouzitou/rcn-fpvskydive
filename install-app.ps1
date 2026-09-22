@@ -61,8 +61,16 @@ $SelfTestPassed = $false
 if ($SourceBuild) { Set-InstallerStep 5 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
 else { Set-InstallerStep 3 'Checking the virtual Xbox controller' 'A neutral, temporary controller test is running.' }
 for ($attempt = 1; $attempt -le 5; $attempt++) {
-  $SelfTest = & $Bridge self-test 2>&1
-  if ($LASTEXITCODE -eq 0) { $SelfTestPassed = $true; break }
+  $PreviousErrorActionPreference = $ErrorActionPreference
+  try {
+    # ViGEm can report TargetNotReady briefly while its neutral test target is
+    # becoming available. Capture that native stderr and use the exit code so
+    # the retry loop can handle it instead of PowerShell stopping immediately.
+    $ErrorActionPreference = 'Continue'
+    $SelfTest = & $Bridge self-test 2>&1
+    $SelfTestExit = $LASTEXITCODE
+  } finally { $ErrorActionPreference = $PreviousErrorActionPreference }
+  if ($SelfTestExit -eq 0) { $SelfTestPassed = $true; break }
   if ($attempt -lt 5) { Start-Sleep -Seconds 1 }
 }
 @{ state = 'installed'; runtime = 'native-rust'; install_mode = $InstallMode; gamepad_self_test = $SelfTestPassed; self_test_output = ($SelfTest -join "`n"); timestamp = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content (Join-Path $Root 'state\health.json')
