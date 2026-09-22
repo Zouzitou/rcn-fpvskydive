@@ -1,11 +1,11 @@
-$Ref = 'v0.1.78'
+$Ref = 'v0.1.79'
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $Repository = 'Zouzitou/rcn-fpvskydive'
 if ($Ref -notmatch '^v\d+\.\d+\.\d+$') { throw 'Ref must be a release tag such as v0.1.46. Nothing was installed.' }
-$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.78/rcn-fpvskydive-v0.1.78-source.zip'
-$ExpectedSourceSha256 = '30070F2E77422A5B556214C5D24C5646F89D3A3119D176D77CA5CD90B92A4D5C'
+$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.79/rcn-fpvskydive-v0.1.79-source.zip'
+$ExpectedSourceSha256 = 'E52AFE5B6770076121DE242FFFA527EAB0A2225708924B377C0CBC4811837EEC'
 $PinnedRef = [regex]::Match($SourceUrl, '/download/(v\d+\.\d+\.\d+)/').Groups[1].Value
 if ([string]::IsNullOrWhiteSpace($PinnedRef) -or $Ref -ne $PinnedRef) { throw 'This source installer only builds its own verified release tag. Download the matching installer for another version.' }
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
@@ -52,21 +52,21 @@ function Write-SourceUi {
     Write-Host $Text -ForegroundColor $fallback
   }
 }
-function Show-Step { param([int]$Number, [string]$Message, [string]$Detail); Write-Progress -Activity 'RCN FPV SkyDive source installer' -Status $Message -PercentComplete ($Number * 20); Write-SourceUi ("  [{0}/5]  {1}" -f $Number, $Message); if ($Detail) { Write-SourceUi ("         {0}" -f $Detail) 'Dim' } }
+function Show-Step { param([int]$Number, [string]$Message, [string]$Detail); Write-Progress -Activity 'RCN FPV SkyDive' -Status $Message -PercentComplete ($Number * 20); Write-SourceUi ("  [{0}/5]  {1}" -f $Number, $Message); if ($Detail) { Write-SourceUi ("         {0}" -f $Detail) 'Dim' } }
 try { Clear-Host } catch { }
 Write-SourceUi -Text '+------------------------------------------------------+'
 Write-SourceUi -Text '|                 RCN FPV SKYDIVE                      |'
 Write-SourceUi -Text '+------------------------------------------------------+'
-Write-SourceUi -Text '  Transparent local source build - no driver changes' -Tone 'Dim'
+Write-SourceUi -Text '  Building FPV SkyDive from source' -Tone 'Dim'
 Write-Host ''
 
-Show-Step 1 'Checking the local Rust build toolchain' 'No downloads or system changes from this installer.'
+Show-Step 1 'Checking Rust' 'Making sure this computer can build the bridge.'
 $CargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
 if ($null -eq $CargoCommand) { throw 'Rust Cargo was not found. Install the stable Rust toolchain from https://rustup.rs, restart PowerShell, then run this command again. Nothing was installed.' }
 & cargo --version | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Cargo could not run. Nothing was installed.' }
 
-Show-Step 2 "Fetching verified source for $Ref" 'Checking the same release-pinned source used for this build.'
+Show-Step 2 "Downloading source $Ref" 'Checking the downloaded source before building it.'
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 Invoke-WebRequest -Uri $SourceUrl -OutFile $Archive
 $ActualSourceSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash
@@ -75,7 +75,7 @@ $SourceRoot = Join-Path $BuildRoot 'source'
 Expand-Archive -LiteralPath $Archive -DestinationPath $SourceRoot -Force
 if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot 'rust-bridge\Cargo.toml'))) { throw "The $Ref source package did not contain the expected Rust project." }
 
-Show-Step 3 'Building the optimized native bridge locally' 'Compiler details are kept private in the local build log.'
+Show-Step 3 'Building the controller bridge' 'This can take a few minutes the first time.'
 $Manifest = Join-Path $SourceRoot 'rust-bridge\Cargo.toml'
 $PreviousCargoPaths = Enable-PrivateCargoPaths
 $PreviousErrorActionPreference = $ErrorActionPreference
@@ -92,7 +92,6 @@ $Bridge = Join-Path $SourceRoot 'rust-bridge\target\release\rcn-bridge.exe'
 if (-not (Test-Path -LiteralPath $Bridge -PathType Leaf)) { throw 'Rust completed without producing rcn-bridge.exe. Your existing installation was not changed.' }
 Assert-PrivateArtifact -Path $Bridge
 $BridgeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Bridge).Hash
-Write-SourceUi ("         Local bridge SHA-256: {0}" -f $BridgeHash) 'Dim'
+Write-SourceUi '         Build complete. Checking the finished bridge.' 'Green'
 
-& (Join-Path $SourceRoot 'install-app.ps1') -SourceRoot $SourceRoot -BridgeSource $Bridge -InstallMode "source-build:$Ref" -SourceBuild
-Write-SourceUi '     Source and private compiler log were retained locally for inspection.' 'Dim'
+& (Join-Path $SourceRoot 'install-app.ps1') -SourceRoot $SourceRoot -BridgeSource $Bridge -InstallMode "source-build:$Ref" -SourceBuild -InstallerUiStarted

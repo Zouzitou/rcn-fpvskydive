@@ -1,6 +1,6 @@
 [package]
 name = "rcn-bridge"
-version = "0.1.78"
+version = "0.1.79"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 description = "Native Windows DJI RC-N Protocol-to-Xbox bridge"

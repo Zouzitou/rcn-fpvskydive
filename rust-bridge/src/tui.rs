@@ -1,7 +1,9 @@
 use std::{
     fs, io,
     process::Command,
-    time::{Duration, Instant},
+    sync::mpsc::{self, Receiver, Sender},
+    thread,
+    time::Duration,
 };
 
 use crossterm::{
@@ -102,6 +104,22 @@ struct Snapshot {
 }
 
 impl Snapshot {
+    fn initial() -> Self {
+        let status = fs::read_to_string(status_path())
+            .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
+        let port = json_string_field(&status, "port");
+        Self {
+            bridge_state: json_string_field(&status, "state")
+                .unwrap_or_else(|| "unknown".to_string()),
+            verified: port.as_deref().is_some_and(live_verification_valid),
+            port,
+            mapped_frames: json_number_field(&status, "mapped_frames"),
+            detail: json_string_field(&status, "detail"),
+            game_running: false,
+            xbox_present: false,
+        }
+    }
+
     fn collect() -> Self {
         let status = fs::read_to_string(status_path())
             .unwrap_or_else(|_| "{\"state\":\"not_started\"}".to_string());
@@ -172,17 +190,30 @@ struct App {
     selected: usize,
     notice: String,
     confirm_stop: bool,
-    last_refresh: Instant,
+    refresh_request: Sender<()>,
+    refreshes: Receiver<Snapshot>,
 }
 
 impl App {
     fn new() -> Self {
+        let (refresh_request, requests) = mpsc::channel();
+        let (snapshots, refreshes) = mpsc::channel();
+        thread::spawn(move || {
+            loop {
+                let _ = requests.recv_timeout(Duration::from_secs(3));
+                if snapshots.send(Snapshot::collect()).is_err() {
+                    break;
+                }
+            }
+        });
+        let _ = refresh_request.send(());
         Self {
-            snapshot: Snapshot::collect(),
+            snapshot: Snapshot::initial(),
             selected: 0,
-            notice: "Use ↑/↓ or j/k, then Enter. Press r to refresh and q to quit.".to_string(),
+            notice: "Use ↑/↓ or j/k, then Enter. Checking game and controller status…".to_string(),
             confirm_stop: false,
-            last_refresh: Instant::now(),
+            refresh_request,
+            refreshes,
         }
     }
 
@@ -209,14 +240,19 @@ impl App {
     }
 
     fn refresh(&mut self) {
-        self.snapshot = Snapshot::collect();
-        self.last_refresh = Instant::now();
-        self.notice = "Health snapshot refreshed. No controller state was changed.".to_string();
+        let _ = self.refresh_request.send(());
+        self.notice = "Refreshing game and controller status…".to_string();
     }
 
-    fn refresh_quietly(&mut self) {
-        self.snapshot = Snapshot::collect();
-        self.last_refresh = Instant::now();
+    fn apply_pending_refresh(&mut self) {
+        let mut updated = false;
+        while let Ok(snapshot) = self.refreshes.try_recv() {
+            self.snapshot = snapshot;
+            updated = true;
+        }
+        if updated && self.notice == "Refreshing game and controller status…" {
+            self.notice = "Status refreshed. No controller state was changed.".to_string();
+        }
     }
 }
 
@@ -254,9 +290,7 @@ fn io_error(error: io::Error) -> BridgeError {
 
 fn event_loop(terminal: &mut UiTerminal, app: &mut App) -> Result<(), BridgeError> {
     loop {
-        if app.last_refresh.elapsed() >= Duration::from_secs(2) {
-            app.refresh_quietly();
-        }
+        app.apply_pending_refresh();
         terminal.draw(|frame| draw(frame, app)).map_err(io_error)?;
         if !event::poll(Duration::from_millis(250)).map_err(io_error)? {
             continue;
@@ -350,17 +384,29 @@ fn run_action(terminal: &mut UiTerminal, app: &mut App, action: Action) -> Resul
         Ok(()) => println!("\n✓ Completed safely."),
         Err(error) => eprintln!("\n! {error}"),
     }
-    println!("\nPress Enter to return to the console...");
-    let mut line = String::new();
-    let _ = io::stdin().read_line(&mut line);
+    println!("\nPress any key to return to the Flight Console...");
+    wait_for_key()?;
     *terminal = init_terminal()?;
-    app.snapshot = Snapshot::collect();
-    app.last_refresh = Instant::now();
+    app.refresh();
     app.notice = match &result {
         Ok(()) => format!("{} completed.", action.label()),
         Err(error) => format!("{} failed: {error}", action.label()),
     };
-    result
+    Ok(())
+}
+
+fn wait_for_key() -> Result<(), BridgeError> {
+    enable_raw_mode().map_err(io_error)?;
+    let result = (|| loop {
+        let Event::Key(key) = event::read().map_err(io_error)? else {
+            continue;
+        };
+        if key.kind == KeyEventKind::Press {
+            break Ok(());
+        }
+    })();
+    let restore_result = disable_raw_mode().map_err(io_error);
+    result.and(restore_result)
 }
 
 fn draw(frame: &mut ratatui::Frame, app: &App) {
