@@ -41,10 +41,16 @@ function Set-InstallerStep {
 }
 
 function Complete-InstallerUi {
-  param([string]$Message)
+  param(
+    [string]$Message,
+    [switch]$Pending,
+    [switch]$Attention
+  )
   Write-Progress -Activity 'RCN FPV SkyDive' -Completed
   Write-Host ''
-  Write-InstallerText -Text '  [OK] INSTALLATION COMPLETE' -Tone 'Green'
+  if ($Pending) { Write-InstallerText -Text '  [OK] SETUP SAVED - ONE STEP REMAINS' -Tone 'Amber' }
+  elseif ($Attention) { Write-InstallerText -Text '  [!] SETUP NEEDS ATTENTION' -Tone 'Amber' }
+  else { Write-InstallerText -Text '  [OK] INSTALLATION COMPLETE' -Tone 'Green' }
   Write-InstallerText -Text ("     {0}" -f $Message) -Tone 'Dim'
 }
 

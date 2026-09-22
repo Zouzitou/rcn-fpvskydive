@@ -16,7 +16,7 @@ try {
   throw "Bridge status was not valid JSON: $($statusText -join ' ')"
 }
 $xbox = @(Get-PnpDevice -PresentOnly | Where-Object {
-  $_.Status -eq 'OK' -and ($_.Class -eq 'XnaComposite' -or $_.FriendlyName -match 'Xbox 360 (Controller|kontroll) for Windows|Xbox 360-kontroll för Windows')
+  $_.Status -eq 'OK' -and ($_.Class -eq 'XnaComposite' -or $_.FriendlyName -match 'Xbox 360.*Windows')
 })
 $passed = $game.Count -gt 0 -and $bridgeStatus.state -eq 'connected' -and $xbox.Count -gt 0
 [pscustomobject]@{

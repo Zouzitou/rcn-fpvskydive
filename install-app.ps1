@@ -133,6 +133,6 @@ if ($DiagnosticExit -eq 0 -and $PortMatch.Success) {
   }
 }
 Set-InstallerStep 5 'Finishing setup' 'Saving your controller check and game setup.'
-if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi 'Setup is saved. Close Steam once to finish its saved game setting.' }
+if ($SteamSetupExit -eq 0 -and $SteamSetup.pending) { Complete-InstallerUi -Message 'Close Steam once to finish saving its FPV SkyDive setting.' -Pending }
 elseif ($SteamSetupExit -eq 0) { Complete-InstallerUi 'Setup is complete. Open FPV SkyDive from Steam.' }
-else { Complete-InstallerUi 'Setup is complete. Steam setup can be retried from the Flight Console.' }
+else { Complete-InstallerUi -Message 'The bridge is installed. Steam setup can be retried from the Flight Console.' -Attention }

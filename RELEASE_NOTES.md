@@ -1,11 +1,11 @@
-# RCN FPV SkyDive v0.1.81
+# RCN FPV SkyDive v0.1.82
 
 ## Highlights
 
-- The Flight Console now enables stick verification whenever FPV SkyDive is closed, even if an old status file still says the bridge is connected.
-- Stick verification automatically clears a leftover game bridge session before opening the controller port.
-- The installer now hides the raw JSON verification report and shows a concise four-direction result instead.
-- Updated the stick-check wording to tell pilots to close FPV SkyDive, not to close the bridge.
+- The installer now distinguishes a completed setup from a setup waiting for Steam to close once.
+- The installer banner and PowerShell-facing text are ASCII-only, avoiding garbled characters in Windows PowerShell 5.1.
+- Steam setup failures now say that attention is needed instead of claiming installation is complete.
+- Windows controller detection keeps its localized-name matching without embedding non-ASCII PowerShell source text.
 
 ## Flight notes
 
