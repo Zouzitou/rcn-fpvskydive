@@ -1,11 +1,11 @@
-$Ref = 'v0.1.77'
+$Ref = 'v0.1.78'
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $Repository = 'Zouzitou/rcn-fpvskydive'
 if ($Ref -notmatch '^v\d+\.\d+\.\d+$') { throw 'Ref must be a release tag such as v0.1.46. Nothing was installed.' }
-$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.77/rcn-fpvskydive-v0.1.77-source.zip'
-$ExpectedSourceSha256 = '8158B5B90526814B5E47335C074F01C5AD49CAB27C7F1512DC7C08201B36AE45'
+$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.78/rcn-fpvskydive-v0.1.78-source.zip'
+$ExpectedSourceSha256 = '30070F2E77422A5B556214C5D24C5646F89D3A3119D176D77CA5CD90B92A4D5C'
 $PinnedRef = [regex]::Match($SourceUrl, '/download/(v\d+\.\d+\.\d+)/').Groups[1].Value
 if ([string]::IsNullOrWhiteSpace($PinnedRef) -or $Ref -ne $PinnedRef) { throw 'This source installer only builds its own verified release tag. Download the matching installer for another version.' }
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'

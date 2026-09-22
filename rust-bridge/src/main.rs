@@ -727,15 +727,16 @@ fn verify_live_input(port: &str) -> Result<(), BridgeError> {
         }
         thread::sleep(Duration::from_millis(20));
     };
+    println!("Quick stick check: move the requested stick, then press Enter.");
     let axes = [
-        ("left horizontal (yaw)", 0usize),
-        ("left vertical (throttle)", 1usize),
-        ("right horizontal (roll)", 2usize),
-        ("right vertical (pitch)", 3usize),
+        ("1 of 4 - left stick left and right", 0usize),
+        ("2 of 4 - left stick up and down", 1usize),
+        ("3 of 4 - right stick left and right", 2usize),
+        ("4 of 4 - right stick up and down", 3usize),
     ];
     let mut results = Vec::new();
     for (name, axis_index) in axes {
-        print!("Move {name} through its range while this prompt is waiting, then press Enter: ");
+        print!("{name}, then press Enter: ");
         std::io::stdout().flush()?;
         let mut minimum = stick_axis(baseline, axis_index);
         let mut maximum = minimum;

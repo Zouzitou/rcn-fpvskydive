@@ -29,7 +29,7 @@ function Start-InstallerUi {
   Write-InstallerText -Text '+------------------------------------------------------+'
   Write-InstallerText -Text '|                 RCN FPV SKYDIVE                      |'
   Write-InstallerText -Text '+------------------------------------------------------+'
-  Write-InstallerText -Text ("  {0}" -f $Subtitle) -Tone 'Dim'
+  if (-not [string]::IsNullOrWhiteSpace($Subtitle)) { Write-InstallerText -Text ("  {0}" -f $Subtitle) -Tone 'Dim' }
   Write-Host ''
 }
 
@@ -54,4 +54,9 @@ function Fail-InstallerUi {
   Write-Host ''
   Write-InstallerText -Text '  [!] INSTALLATION STOPPED SAFELY' -Tone 'Red'
   Write-InstallerText -Text ("     {0}" -f $Message) -Tone 'Dim'
+}
+
+function Write-InstallerTip {
+  param([Parameter(Mandatory = $true)][string]$Text)
+  Write-InstallerText -Text ("     Tip: {0}" -f $Text) -Tone 'Dim'
 }

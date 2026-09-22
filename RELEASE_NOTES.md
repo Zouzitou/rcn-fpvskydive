@@ -1,4 +1,4 @@
-# RCN FPV SkyDive v0.1.77
+# RCN FPV SkyDive v0.1.78
 
 ## Highlights
 
@@ -12,6 +12,7 @@
 - The installer now retries a temporarily unready virtual Xbox target instead of letting Windows PowerShell stop on its diagnostic output.
 - The README’s latest-release commands now bypass stale CDN responses automatically.
 - The installer waits longer for a virtual Xbox target and no longer reports completion if that required self-test fails.
+- Reworked the installer into a pilot-focused setup flow with changing status updates, automatic controller diagnosis, practical tips, and an optional guided four-stick check.
 - Releases now refuse unreviewed untracked files instead of staging everything automatically, and common secret-file patterns are ignored.
 
 ## Flight notes
