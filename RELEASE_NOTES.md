@@ -1,10 +1,10 @@
-# RCN FPV SkyDive v0.1.84
+# RCN FPV SkyDive v0.1.85
 
 ## Highlights
 
-- Uninstall now restores FPV SkyDive's normal Steam launch setting before removing the bridge.
-- Recovery handles an interrupted uninstall even when the bridge folder or saved installer state is already missing.
-- Steam is closed cleanly before its per-game launch configuration is changed.
+- Steam launches now use the full Windows command-processor path, preventing the "missing executable" error after installation.
+- Repair and reinstall now replace an older broken Steam wrapper instead of incorrectly treating it as valid.
+- Uninstall now clearly confirms that FPV SkyDive game files and saved settings were kept.
 
 ## Flight notes
 
@@ -13,11 +13,12 @@
 
 ## Verification
 
-- PowerShell script checks passed.
+- PowerShell script checks passed, including a regression gate for the Steam executable path.
+- FPV SkyDive and the RCN bridge were launched together successfully through Steam with the corrected wrapper.
 - Release artifacts will be privacy-scanned and SHA-256 verified by the local release script.
 
 ## Install or update
 
 ```powershell
-irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.84/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Zouzitou/rcn-fpvskydive/v0.1.85/bootstrap.ps1 | iex
 ```

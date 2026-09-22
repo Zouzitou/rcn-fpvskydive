@@ -27,6 +27,17 @@ if ($LASTEXITCODE -ne 0 -or ($uiOutput -join "`n") -match 'Cannot validate argum
 }
 Write-Host 'OK installer banner compatibility'
 
+# Steam validates the first executable in a %command% wrapper before launch.
+# A bare cmd.exe can be rejected as AppError_28 even though Windows would find it.
+$steamSetup = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'steam-launch-options.ps1') -Raw
+if ($steamSetup -match "(?m)^\$WrapperCommand\s*=\s*'cmd\.exe" -or
+    $steamSetup -notmatch [regex]::Escape('$CommandProcessor') -or
+    $steamSetup -notmatch [regex]::Escape('$existing.value -ne $WrapperCommand')) {
+  Write-Error 'steam-launch-options.ps1 does not enforce and repair an absolute command-processor path.'
+  exit 1
+}
+Write-Host 'OK Steam launch-wrapper executable gate'
+
 # The driver package validator must fail before elevation or pnputil when an
 # apparently DJI-shaped package is incomplete. This fixture uses a Provider
 # token deliberately, covering normal INF string indirection as well.

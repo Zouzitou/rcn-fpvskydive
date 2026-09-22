@@ -11,7 +11,8 @@ $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $StatePath = Join-Path $Root 'state\steam-launch-options.json'
 $PendingPath = Join-Path $Root 'state\steam-launch-options-pending.json'
 $WrapperMarker = 'RCN-FPVSkyDive\launch-fpv.cmd'
-$WrapperCommand = 'cmd.exe /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%'
+$CommandProcessor = if ($env:ComSpec -and (Test-Path -LiteralPath $env:ComSpec -PathType Leaf)) { $env:ComSpec } else { Join-Path $env:SystemRoot 'System32\cmd.exe' }
+$WrapperCommand = '"' + $CommandProcessor + '" /d /c call "%LOCALAPPDATA%\RCN-FPVSkyDive\launch-fpv.cmd" %command%'
 
 function Get-SteamRoots {
   $roots = [System.Collections.Generic.List[string]]::new()
@@ -201,7 +202,13 @@ if ($Action -eq 'install') {
     $apps = Find-VdfBlock -Text $data.text -Key 'apps'
     $app = if ($apps) { Find-VdfBlock -Text $data.text -Key $AppId -From ($apps.open + 1) -To $apps.close } else { $null }
     $existing = if ($app) { Get-LaunchOptions -Text $data.text -AppBlock $app } else { $null }
-    if ($existing -and $existing.value -match [regex]::Escape($WrapperMarker)) { continue }
+    if ($existing -and $existing.value -match [regex]::Escape($WrapperMarker)) {
+      if ($existing.value -ne $WrapperCommand) {
+        $updated = Set-LaunchOptions -Text $data.text -Value $WrapperCommand
+        Write-VdfText -Path $config -Text $updated -Encoding $data.encoding
+      }
+      continue
+    }
     $suffix = if ($existing -and -not [string]::IsNullOrWhiteSpace($existing.value)) { ' ' + $existing.value } else { '' }
     $updated = Set-LaunchOptions -Text $data.text -Value ($WrapperCommand + $suffix)
     Write-VdfText -Path $config -Text $updated -Encoding $data.encoding

@@ -27,4 +27,4 @@ if (Test-Path $Root) {
   if (Test-Path $RecoveryScript) { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $RecoveryScript -Action remove }
 }
 Remove-Item -LiteralPath $Shortcut -Force -ErrorAction SilentlyContinue
-Write-Host 'RCN FPV SkyDive user files removed. Driver-store packages, if installed, require the repair/uninstall driver flow.'
+Write-Host 'RCN FPV SkyDive bridge removed. Your FPV SkyDive game files and saved settings were kept.'
