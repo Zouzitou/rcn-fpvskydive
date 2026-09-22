@@ -1,11 +1,11 @@
-$Ref = 'v0.1.72'
+$Ref = 'v0.1.73'
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $Repository = 'Zouzitou/rcn-fpvskydive'
 if ($Ref -notmatch '^v\d+\.\d+\.\d+$') { throw 'Ref must be a release tag such as v0.1.46. Nothing was installed.' }
-$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.72/rcn-fpvskydive-v0.1.72-source.zip'
-$ExpectedSourceSha256 = '915E01428A750AFBB015A8606ED87BC784DA1868469312546AF9840F7028962F'
+$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.73/rcn-fpvskydive-v0.1.73-source.zip'
+$ExpectedSourceSha256 = '52AABE438B028370D14148EA90D832A4C45FED2AE84A5A993A029E66A28ACF1F'
 $PinnedRef = [regex]::Match($SourceUrl, '/download/(v\d+\.\d+\.\d+)/').Groups[1].Value
 if ([string]::IsNullOrWhiteSpace($PinnedRef) -or $Ref -ne $PinnedRef) { throw 'This source installer only builds its own verified release tag. Download the matching installer for another version.' }
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
@@ -46,7 +46,7 @@ function Write-SourceUi {
     [Parameter(Position = 1)][string]$Tone = 'Orange'
   )
   $code = if ($Tone -eq 'Green') { '38;5;114' } elseif ($Tone -eq 'Red') { '38;5;203' } elseif ($Tone -eq 'Dim') { '38;5;245' } else { '38;5;208' }
-  if ($InstallerUseAnsi) { Write-Host ("`e[{0}m{1}`e[0m" -f $code, $Text) }
+  if ($InstallerUseAnsi) { Write-Host (([char]27 + "[{0}m{1}" + [char]27 + '[0m') -f $code, $Text) }
   else {
     $fallback = if ($Tone -eq 'Green') { 'Green' } elseif ($Tone -eq 'Red') { 'Red' } elseif ($Tone -eq 'Dim') { 'DarkGray' } else { 'DarkYellow' }
     Write-Host $Text -ForegroundColor $fallback
@@ -78,9 +78,16 @@ if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot 'rust-bridge\Cargo.toml'
 Show-Step 3 'Building the optimized native bridge locally' 'Compiler details are kept private in the local build log.'
 $Manifest = Join-Path $SourceRoot 'rust-bridge\Cargo.toml'
 $PreviousCargoPaths = Enable-PrivateCargoPaths
-try { & cargo build --locked --release --manifest-path $Manifest *> $BuildLog }
-finally { Restore-CargoPaths -Previous $PreviousCargoPaths }
-if ($LASTEXITCODE -ne 0) { throw 'Rust source build failed. Your existing installation was not changed.' }
+$PreviousErrorActionPreference = $ErrorActionPreference
+try {
+  $ErrorActionPreference = 'Continue'
+  & cargo build --locked --release --manifest-path $Manifest *> $BuildLog
+  $CargoExitCode = $LASTEXITCODE
+} finally {
+  $ErrorActionPreference = $PreviousErrorActionPreference
+  Restore-CargoPaths -Previous $PreviousCargoPaths
+}
+if ($CargoExitCode -ne 0) { throw 'Rust source build failed. Your existing installation was not changed.' }
 $Bridge = Join-Path $SourceRoot 'rust-bridge\target\release\rcn-bridge.exe'
 if (-not (Test-Path -LiteralPath $Bridge -PathType Leaf)) { throw 'Rust completed without producing rcn-bridge.exe. Your existing installation was not changed.' }
 Assert-PrivateArtifact -Path $Bridge
