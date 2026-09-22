@@ -6,6 +6,17 @@ dist/
 build/
 *.egg-info/
 *.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+credentials.*
+secrets.*
 release/
 release-next/
 release-*

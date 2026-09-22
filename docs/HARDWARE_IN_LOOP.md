@@ -14,7 +14,7 @@ RC-N1 evidence is recorded in [HARDWARE_EVIDENCE_RC_N1.md](HARDWARE_EVIDENCE_RC_
 | DJI Assistant 2 open | [ ] | [ ] | [ ] | Busy/interference diagnosis and safe retry |
 | Protocol + Debug interfaces | [x] | [ ] | [ ] | Protocol selected; Debug rejected |
 | Plug after game bridge starts | [ ] | [ ] | [ ] | Waiting → connected after live verification |
-| Unplug/replug and COM renumber | [ ] | [ ] | [ ] | Re-resolve instance ID and reconnect |
+| Unplug/replug and COM renumber | [x] | [ ] | [ ] | Re-resolve instance ID and reconnect |
 | Sleep/resume | [ ] | [ ] | [ ] | Neutral during gap, reconnect after resume |
 | Four-axis live verification | [x] | [ ] | [ ] | All axes change plausibly |
 | Native guided verifier | [x] | [ ] | [ ] | `verify-input` passes all four axes |
@@ -26,4 +26,4 @@ RC-N1 evidence is recorded in [HARDWARE_EVIDENCE_RC_N1.md](HARDWARE_EVIDENCE_RC_
 
 RC-N2 and RC-N3 remain `RC-N family unconfirmed` unless their Protocol interface passes the native three-frame checksum gate and the four-axis live-stick test. A USB name, PID, or successful serial open alone is never compatibility evidence.
 
-The RC-N1 game-launch check used the live `game-check` verifier: it observed FPV SkyDive running, bridge state `connected`, continuously increasing mapped-frame count, and an `OK` Windows Xbox 360 controller. The launcher teardown is covered by the packaged wrapper lifecycle test; a physical Steam-Library launch/exit, unplug/replug, and sleep/resume remain unchecked.
+The RC-N1 game-launch check used the live `game-check` verifier: it observed FPV SkyDive running, bridge state `connected`, continuously increasing mapped-frame count, and an `OK` Windows Xbox 360 controller. The user also confirmed that unplugging and reconnecting the controller restored control without restarting the game. The launcher teardown is covered by the packaged wrapper lifecycle test; a physical Steam-Library launch/exit and sleep/resume remain unchecked.

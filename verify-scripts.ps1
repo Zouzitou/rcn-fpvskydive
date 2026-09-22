@@ -16,6 +16,17 @@ foreach ($file in $files) {
 }
 if ($failed) { exit 1 }
 
+# Exercise the installer banner in Windows PowerShell itself. A UTF-8
+# box-drawing character can decode to a curly apostrophe in PowerShell 5.1,
+# turning part of the title into a positional parameter.
+$uiPath = Join-Path $PSScriptRoot 'installer-ui.ps1'
+$uiOutput = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& { . '$uiPath'; Start-InstallerUi -Subtitle 'Installer self-check' }" 2>&1
+if ($LASTEXITCODE -ne 0 -or ($uiOutput -join "`n") -match 'Cannot validate argument on parameter') {
+  Write-Error 'installer-ui.ps1 banner failed under Windows PowerShell.'
+  exit 1
+}
+Write-Host 'OK installer banner compatibility'
+
 # The driver package validator must fail before elevation or pnputil when an
 # apparently DJI-shaped package is incomplete. This fixture uses a Provider
 # token deliberately, covering normal INF string indirection as well.

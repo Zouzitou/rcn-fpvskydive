@@ -1,10 +1,14 @@
 [CmdletBinding()]
-param([string]$Ref = 'v0.1.69')
+param([string]$Ref = 'v0.1.70')
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $Repository = 'Zouzitou/rcn-fpvskydive'
 if ($Ref -notmatch '^v\d+\.\d+\.\d+$') { throw 'Ref must be a release tag such as v0.1.46. Nothing was installed.' }
+$SourceUrl = 'https://github.com/Zouzitou/rcn-fpvskydive/releases/download/v0.1.69/rcn-fpvskydive-v0.1.69-source.zip'
+$ExpectedSourceSha256 = 'SOURCE_HASH_SET_BY_RELEASE'
+$PinnedRef = [regex]::Match($SourceUrl, '/download/(v\d+\.\d+\.\d+)/').Groups[1].Value
+if ([string]::IsNullOrWhiteSpace($PinnedRef) -or $Ref -ne $PinnedRef) { throw 'This source installer only builds its own verified release tag. Download the matching installer for another version.' }
 $Root = Join-Path $env:LOCALAPPDATA 'RCN-FPVSkyDive'
 $CacheRoot = Join-Path $Root 'source-cache'
 $BuildId = 'build-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -12,10 +16,36 @@ $BuildRoot = Join-Path $CacheRoot $BuildId
 $Archive = Join-Path $BuildRoot 'source.zip'
 $BuildLog = Join-Path $BuildRoot 'build.log'
 
+function Enable-PrivateCargoPaths {
+  $previous = $env:CARGO_ENCODED_RUSTFLAGS
+  $remap = "--remap-path-prefix=$env:USERPROFILE=<USERPROFILE>"
+  $env:CARGO_ENCODED_RUSTFLAGS = if ([string]::IsNullOrEmpty($previous)) { $remap } else { $previous + [char]0x1f + $remap }
+  return $previous
+}
+
+function Restore-CargoPaths {
+  param([AllowEmptyString()][string]$Previous)
+  if ($null -eq $Previous) { Remove-Item Env:CARGO_ENCODED_RUSTFLAGS -ErrorAction SilentlyContinue }
+  else { $env:CARGO_ENCODED_RUSTFLAGS = $Previous }
+}
+
+function Assert-PrivateArtifact {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  $patterns = @($env:USERNAME) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  foreach ($pattern in $patterns) {
+    & rg -a -i -q --fixed-strings -- $pattern $Path
+    if ($LASTEXITCODE -eq 0) { throw 'The local build contains a private build identity. Your existing installation was not changed.' }
+    if ($LASTEXITCODE -gt 1) { throw 'Could not inspect the local build for private build identities.' }
+  }
+}
+
 $InstallerUseAnsi = $false
 try { $InstallerUseAnsi = [bool]$Host.UI.SupportsVirtualTerminal } catch { }
 function Write-SourceUi {
-  param([string]$Text, [string]$Tone = 'Orange')
+  param(
+    [Parameter(Mandatory = $true, Position = 0)][AllowEmptyString()][string]$Text,
+    [Parameter(Position = 1)][string]$Tone = 'Orange'
+  )
   $code = if ($Tone -eq 'Green') { '38;5;114' } elseif ($Tone -eq 'Red') { '38;5;203' } elseif ($Tone -eq 'Dim') { '38;5;245' } else { '38;5;208' }
   if ($InstallerUseAnsi) { Write-Host ("`e[{0}m{1}`e[0m" -f $code, $Text) }
   else {
@@ -25,10 +55,10 @@ function Write-SourceUi {
 }
 function Show-Step { param([int]$Number, [string]$Message, [string]$Detail); Write-Progress -Activity 'RCN FPV SkyDive source installer' -Status $Message -PercentComplete ($Number * 20); Write-SourceUi ("  [{0}/5]  {1}" -f $Number, $Message); if ($Detail) { Write-SourceUi ("         {0}" -f $Detail) 'Dim' } }
 try { Clear-Host } catch { }
-Write-SourceUi '╔══════════════════════════════════════════════════════╗'
-Write-SourceUi '║                 RCN FPV SKYDIVE                      ║'
-Write-SourceUi '╚══════════════════════════════════════════════════════╝'
-Write-SourceUi '  Transparent local source build  •  no driver changes' 'Dim'
+Write-SourceUi -Text '+------------------------------------------------------+'
+Write-SourceUi -Text '|                 RCN FPV SKYDIVE                      |'
+Write-SourceUi -Text '+------------------------------------------------------+'
+Write-SourceUi -Text '  Transparent local source build - no driver changes' -Tone 'Dim'
 Write-Host ''
 
 Show-Step 1 'Checking the local Rust build toolchain' 'No downloads or system changes from this installer.'
@@ -37,20 +67,24 @@ if ($null -eq $CargoCommand) { throw 'Rust Cargo was not found. Install the stab
 & cargo --version | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Cargo could not run. Nothing was installed.' }
 
-Show-Step 2 "Fetching transparent source archive for $Ref" 'Downloading only the public, release-tagged source.'
+Show-Step 2 "Fetching verified source for $Ref" 'Checking the same release-pinned source used for this build.'
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
-$SourceUrl = "https://github.com/$Repository/archive/refs/tags/$Ref.zip"
 Invoke-WebRequest -Uri $SourceUrl -OutFile $Archive
-Expand-Archive -LiteralPath $Archive -DestinationPath $BuildRoot -Force
-$SourceRoot = Get-ChildItem -LiteralPath $BuildRoot -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'rust-bridge\Cargo.toml') } | Select-Object -First 1 -ExpandProperty FullName
-if ([string]::IsNullOrWhiteSpace($SourceRoot)) { throw "The $Ref archive did not contain the expected Rust project." }
+$ActualSourceSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash
+if ($ActualSourceSha256 -ne $ExpectedSourceSha256) { throw 'Source verification failed. Your existing installation was not changed.' }
+$SourceRoot = Join-Path $BuildRoot 'source'
+Expand-Archive -LiteralPath $Archive -DestinationPath $SourceRoot -Force
+if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot 'rust-bridge\Cargo.toml'))) { throw "The $Ref source package did not contain the expected Rust project." }
 
 Show-Step 3 'Building the optimized native bridge locally' 'Compiler details are kept private in the local build log.'
 $Manifest = Join-Path $SourceRoot 'rust-bridge\Cargo.toml'
-& cargo build --locked --release --manifest-path $Manifest *> $BuildLog
+$PreviousCargoPaths = Enable-PrivateCargoPaths
+try { & cargo build --locked --release --manifest-path $Manifest *> $BuildLog }
+finally { Restore-CargoPaths -Previous $PreviousCargoPaths }
 if ($LASTEXITCODE -ne 0) { throw 'Rust source build failed. Your existing installation was not changed.' }
 $Bridge = Join-Path $SourceRoot 'rust-bridge\target\release\rcn-bridge.exe'
 if (-not (Test-Path -LiteralPath $Bridge -PathType Leaf)) { throw 'Rust completed without producing rcn-bridge.exe. Your existing installation was not changed.' }
+Assert-PrivateArtifact -Path $Bridge
 $BridgeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Bridge).Hash
 Write-SourceUi ("         Local bridge SHA-256: {0}" -f $BridgeHash) 'Dim'
 

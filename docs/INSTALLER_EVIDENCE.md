@@ -33,10 +33,11 @@ This proves the released bridge remains present while the actual FPV SkyDive pro
 - FPV SkyDive's **Settings → Controls** screen changed from **Keyboard And Mouse** to **XInput Gamepad 1** as soon as the bridge connected. It showed **Gamepad** input and the expected four assigned axes: Left Stick Y, Left Stick X, Right Stick Y, and Right Stick X.
 - The in-game **Input Calibration → Configure** control was visible, but it was intentionally not opened and no game bindings were saved or changed during this inspection.
 - Steam's launch-option setup was still queued because Steam had remained open since installation. The bridge for this evidence run was started manually; therefore a physical normal-Steam-Play launch/exit with the configured wrapper remains a separate gate.
+- During a later v0.1.69 gameplay session, the user unplugged and reconnected the RC-N controller while FPV SkyDive remained open and confirmed control returned without restarting the game.
 
 ## Not yet proven
 
 - RC-N2 and RC-N3 hardware and firmware behavior
 - Clean-machine driver installation with an official DJI INF
-- Physical unplug/replug, sleep/resume, and COM renumbering on separate hardware runs
+- Sleep/resume and COM-renumbering behavior on separate hardware runs
 - FPV SkyDive calibration and in-flight handling

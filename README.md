@@ -4,7 +4,6 @@
 [![Latest release](https://img.shields.io/github/v/release/Zouzitou/rcn-fpvskydive?display_name=tag&logo=github)](https://github.com/Zouzitou/rcn-fpvskydive/releases)
 [![Rust](https://img.shields.io/badge/runtime-Rust-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-3DA639.svg)](LICENSE)
-[![No login startup](https://img.shields.io/badge/bridge-game--only-ff8c00)](README.md#fly)
 
 ### Turn your DJI RC-N controller into an Xbox controller for FPV SkyDive.
 
@@ -14,25 +13,30 @@
 
 ## Fly
 
-**You need:** Windows 10/11 · FPV SkyDive on Steam · your powered-on RC-N controller · a USB-C data cable.
+Before you start:
 
-### 1 — Install
+1. Windows 10 or Windows 11
+2. FPV SkyDive installed through Steam
+3. Your RC-N controller, powered on
+4. A USB-C data cable
 
-Open **PowerShell**, paste this, and wait for the orange completion screen:
+### 1. Install
+
+Open **PowerShell** and paste:
 
 ```powershell
 irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1 | iex
 ```
 
-### 2 — Connect
+### 2. Connect
 
-Power on your controller and plug it in. The app checks for a healthy controller connection before creating the virtual Xbox controller.
+Power on your controller and plug it in.
 
-### 3 — Launch
+### 3. Launch
 
-Click **Play** in Steam. The installer configures FPV SkyDive’s Steam entry to start the bridge with the game and close it when you exit.
+Click **Play** in Steam.
 
-### 4 — Calibrate in FPV SkyDive
+### 4. Calibrate in FPV SkyDive
 
 | Stick movement | Bind as |
 | --- | --- |
@@ -43,8 +47,6 @@ Click **Play** in Steam. The installer configures FPV SkyDive’s Steam entry to
 
 Choose any Arm, Pause, Restart, or Recover bindings in FPV SkyDive itself.
 
-If Steam is open during installation, setup waits in the background and safely updates FPV SkyDive’s launch option the next time Steam closes. The same one-shot worker also starts the bridge if you open FPV SkyDive before then. You do not need to copy/paste launch options or rerun the installer. Existing FPV SkyDive launch arguments are preserved.
-
 ## Need help?
 
 Open the Flight Console:
@@ -53,16 +55,7 @@ Open the Flight Console:
 & "$env:LOCALAPPDATA\RCN-FPVSkyDive\bin\rcn-bridge.exe" tui
 ```
 
-Press `v` to check stick movement, `l` to launch, or read the [troubleshooting guide](docs/TROUBLESHOOTING.md). It never installs a driver or edits game bindings without you choosing to do so.
-
-## Built for flying, not background clutter
-
-| What it does | What it does not do |
-| --- | --- |
-| Starts the bridge with FPV SkyDive | Run at Windows login |
-| Sends neutral sticks on disconnect or exit | Leave a stuck input behind |
-| Verifies the downloaded release before installing | Print your Windows username during install |
-| Keeps your game bindings under your control | Change settings behind your back |
+Press `v` to check stick movement, `l` to launch, or read the [troubleshooting guide](docs/TROUBLESHOOTING.md).
 
 ## License
 

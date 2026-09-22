@@ -1,6 +1,6 @@
 [package]
 name = "rcn-bridge"
-version = "0.1.69"
+version = "0.1.70"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 description = "Native Windows DJI RC-N Protocol-to-Xbox bridge"
@@ -12,3 +12,6 @@ serialport = "=4.8.1"
 thiserror = "=2.0.17"
 vigem-rust = "=0.2.0"
 windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading"] }
+
+[profile.release]
+strip = "symbols"
