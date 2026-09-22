@@ -25,7 +25,7 @@ Before you start:
 Open **PowerShell** and paste:
 
 ```powershell
-irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1 | iex
+iex (irm "https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/bootstrap.ps1?cache=$([guid]::NewGuid().ToString('N'))")
 ```
 
 ### 2. Connect
@@ -66,7 +66,7 @@ RCN FPV SkyDive is licensed under the [GNU Affero General Public License v3.0](L
 To inspect and build the tagged source locally, install Rust from [rustup.rs](https://rustup.rs), then run:
 
 ```powershell
-iex (irm https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/install-from-source.ps1)
+iex (irm "https://github.com/Zouzitou/rcn-fpvskydive/releases/latest/download/install-from-source.ps1?cache=$([guid]::NewGuid().ToString('N'))")
 ```
 
 Architecture, acceptance evidence, and the hardware test plan live in [ARCHITECTURE.md](ARCHITECTURE.md), [ACCEPTANCE.md](ACCEPTANCE.md), and [docs/HARDWARE_IN_LOOP.md](docs/HARDWARE_IN_LOOP.md).
